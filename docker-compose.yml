@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  wanwatcher:
+    image: wanwatcher:latest
+    container_name: wanwatcher
+    restart: unless-stopped
+    
+    environment:
+      # Required: Your Discord webhook URL
+      DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_TOKEN"
+      
+      # Optional: ipinfo.io API token for geographic data
+      # Get free token at: https://ipinfo.io/signup
+      IPINFO_TOKEN: ""
+      
+      # Optional: Server identification name
+      SERVER_NAME: "My Docker Server"
+      
+      # Optional: Discord bot name
+      BOT_NAME: "WANwatcher"
+      
+      # Optional: Check interval in seconds (default: 900 = 15 minutes)
+      CHECK_INTERVAL: "900"
+    
+    volumes:
+      # Persist IP database across container restarts
+      - ./data:/data
+      
+      # Persist logs across container restarts
+      - ./logs:/logs
+    
+    # Healthcheck to ensure container is working
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import os; exit(0 if os.path.exists('/data/ipinfo.db') else 1)"]
+      interval: 5m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    # Resource limits (optional)
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+    
+    # Network mode (optional - use host network if you have network issues)
+    # network_mode: "host"
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -1,0 +1,26 @@
+__pycache__/
+*.py[cod]
+*.pyc
+.Python
+venv/
+ENV/
+*.egg-info/
+
+# Data
+data/
+logs/
+*.db
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Docker
+docker-compose.override.yml
+
+# Secrets
+.env
+*.pem
