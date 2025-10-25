@@ -7,34 +7,62 @@ services:
     restart: unless-stopped
     
     environment:
-      # Required: Your Discord webhook URL
+      # ========================================
+      # Required Configuration
+      # ========================================
+      
+      # Your Discord webhook URL (REQUIRED)
+      # Get from: Discord Server → Settings → Integrations → Webhooks
       DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_TOKEN"
       
+      # ========================================
+      # Optional Basic Configuration
+      # ========================================
+      
       # Optional: ipinfo.io API token for geographic data
-      # Get free token at: https://ipinfo.io/signup
+      # Get free token (50k requests/month) at: https://ipinfo.io/signup
+      # Without token: No city/region/ISP information in notifications
       IPINFO_TOKEN: ""
       
-      # Optional: Server identification name
+      # Optional: Server identification name (appears in Discord notifications)
       SERVER_NAME: "My Docker Server"
       
-      # Optional: Discord bot name
+      # Optional: Discord bot display name
       BOT_NAME: "WANwatcher"
       
-      # Optional: Check interval in seconds (default: 900 = 15 minutes)
+      # Optional: Check interval in seconds
+      # Examples: 300=5min, 900=15min (default), 1800=30min, 3600=1hr, 21600=6hr
       CHECK_INTERVAL: "900"
       
-      # NEW: IPv6 Configuration
-      MONITOR_IPV4: "true"   # Monitor IPv4 (default: true)
-      MONITOR_IPV6: "true"   # Monitor IPv6 (default: true)
+      # ========================================
+      # NEW: IPv6 Configuration (v1.1.0+)
+      # ========================================
+      
+      # Monitor IPv4 addresses (default: true)
+      # Set to "false" to disable IPv4 monitoring
+      MONITOR_IPV4: "true"
+      
+      # Monitor IPv6 addresses (default: true)
+      # Set to "false" to disable IPv6 monitoring
+      MONITOR_IPV6: "true"
+      
+      # Configuration examples:
+      # - Monitor both: MONITOR_IPV4="true", MONITOR_IPV6="true" (default)
+      # - IPv4 only: MONITOR_IPV4="true", MONITOR_IPV6="false"
+      # - IPv6 only: MONITOR_IPV4="false", MONITOR_IPV6="true"
     
     volumes:
       # Persist IP database across container restarts
+      # Contains current and previous IP addresses (IPv4 and IPv6)
       - ./data:/data
       
       # Persist logs across container restarts
+      # Logs all IP checks, changes, and errors
       - ./logs:/logs
     
-    # Healthcheck to ensure container is working
+    # ========================================
+    # Health Check (Optional but Recommended)
+    # ========================================
     healthcheck:
       test: ["CMD", "python3", "-c", "import os; exit(0 if os.path.exists('/data/ipinfo.db') else 1)"]
       interval: 5m
@@ -42,21 +70,71 @@ services:
       retries: 3
       start_period: 30s
     
-    # Resource limits (optional)
+    # ========================================
+    # Resource Limits (Optional)
+    # ========================================
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 128M
+          cpus: '0.5'       # Maximum 50% of one CPU core
+          memory: 128M      # Maximum 128MB RAM
         reservations:
-          cpus: '0.1'
-          memory: 32M
+          cpus: '0.1'       # Reserve 10% of one CPU core
+          memory: 32M       # Reserve 32MB RAM
     
-    # Network mode (optional - use host network if you have network issues)
+    # ========================================
+    # Network Configuration (Optional)
+    # ========================================
+    
+    # Uncomment the line below if you experience network connectivity issues
+    # or if you need the container to use the host's network stack
     # network_mode: "host"
     
+    # ========================================
+    # Logging Configuration (Optional)
+    # ========================================
     logging:
       driver: "json-file"
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: "10m"   # Maximum size of each log file
+        max-file: "3"     # Keep 3 log files (30MB total)
+
+# ============================================
+# Additional Configuration Examples
+# ============================================
+
+# Example 1: IPv4 Only Configuration
+# ------------------------------------
+# environment:
+#   DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/..."
+#   MONITOR_IPV4: "true"
+#   MONITOR_IPV6: "false"
+
+# Example 2: IPv6 Only Configuration
+# ------------------------------------
+# environment:
+#   DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/..."
+#   MONITOR_IPV4: "false"
+#   MONITOR_IPV6: "true"
+
+# Example 3: Dual-Stack with Geographic Data
+# --------------------------------------------
+# environment:
+#   DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/..."
+#   IPINFO_TOKEN: "your_actual_token_here"
+#   SERVER_NAME: "Home Lab Server"
+#   MONITOR_IPV4: "true"
+#   MONITOR_IPV6: "true"
+#   CHECK_INTERVAL: "300"
+
+# Example 4: Frequent Checks (5 minutes)
+# ----------------------------------------
+# environment:
+#   DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/..."
+#   CHECK_INTERVAL: "300"
+
+# Example 5: Infrequent Checks (6 hours)
+# ----------------------------------------
+# environment:
+#   DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/..."
+#   CHECK_INTERVAL: "21600"
