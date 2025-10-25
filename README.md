@@ -1,5 +1,9 @@
 <div align="center">
 
+![WANwatcher Banner](wanwatcher-banner.png)
+
+</div>
+
 # 🌐 WANwatcher
 
 ### WAN IP Monitoring with Discord Notifications
