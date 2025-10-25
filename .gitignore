@@ -24,3 +24,5 @@ docker-compose.override.yml
 # Secrets
 .env
 *.pem
+*.backup
+*.backup

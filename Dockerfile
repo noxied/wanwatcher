@@ -12,7 +12,7 @@ WORKDIR /app
 RUN pip install --no-cache-dir requests
 
 # Copy application files
-COPY wanwatcher.py /app/
+COPY wanwatcher*.py /app/
 
 # Create directories for data persistence
 RUN mkdir -p /data /logs

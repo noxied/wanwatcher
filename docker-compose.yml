@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   wanwatcher:
-    image: wanwatcher:latest
+    image: noxied/wanwatcher:latest
     container_name: wanwatcher
     restart: unless-stopped
     
@@ -22,6 +22,10 @@ services:
       
       # Optional: Check interval in seconds (default: 900 = 15 minutes)
       CHECK_INTERVAL: "900"
+      
+      # NEW: IPv6 Configuration
+      MONITOR_IPV4: "true"   # Monitor IPv4 (default: true)
+      MONITOR_IPV6: "true"   # Monitor IPv6 (default: true)
     
     volumes:
       # Persist IP database across container restarts
