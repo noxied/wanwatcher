@@ -25,17 +25,32 @@
 
 ### Discord Notification Example
 
+<div align="left">
+<img width="500" alt="Discord Notification" src="https://user-images.githubusercontent.com/placeholder/discord-embed-preview.png">
+</div>
+
+**Example notification you'll receive:**
 ```
 🌐 WAN IP Monitor Alert
+━━━━━━━━━━━━━━━━━━━━━
 🔄 IP Address Changed
 WAN IP for My Server has been updated
 
 📍 Current IP: 98.76.54.32
 📌 Previous IP: 123.45.67.89
-🌍 Location: Los Angeles, CA, United States
-🏢 ISP: Example ISP
-⏰ Detected At: Saturday, October 25, 2025 3:15 AM
-🐳 Environment: Running in Docker
+
+🌍 Location Information
+└─ 🗺️ Los Angeles, CA, United States
+└─ 🏢 Example Internet Provider
+└─ 🕐 America/Los_Angeles
+
+⏰ Detected At
+└─ Saturday, October 25, 2025 3:15 AM
+
+🐳 Environment
+└─ Running in Docker
+━━━━━━━━━━━━━━━━━━━━━
+WANwatcher on My Server
 ```
 
 ---
