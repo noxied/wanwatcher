@@ -25,10 +25,6 @@
 
 ### Discord Notification Example
 
-<div align="left">
-<img width="500" alt="Discord Notification" src="https://user-images.githubusercontent.com/placeholder/discord-embed-preview.png">
-</div>
-
 **Example notification you'll receive:**
 ```
 🌐 WAN IP Monitor Alert
@@ -41,7 +37,7 @@ WAN IP for My Server has been updated
 
 🌍 Location Information
 └─ 🗺️ Los Angeles, CA, United States
-└─ 🏢 Example Internet Provider
+└─ 🏢 Example Internet Provider  
 └─ 🕐 America/Los_Angeles
 
 ⏰ Detected At
