@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """
-WANwatcher Docker - WAN IP Address Monitor with Discord Notifications
+WANwatcher Docker - WAN IP Address Monitor with Multi-Platform Notifications
 Docker-optimized version with continuous loop mode
+
+Version: 1.2.0
 
 Features:
 - Automatic IP change detection
-- Discord webhook notifications with rich embeds
+- Multi-platform notifications (Discord, Telegram)
 - Detailed logging
 - Error handling and recovery
 - Supports multiple IP detection services as fallback
 - Optional ipinfo.io integration for geographic data
 - Continuous monitoring mode for Docker
+- IPv6 support
 """
 
 import requests
@@ -20,12 +23,25 @@ import sys
 import logging
 import time
 from datetime import datetime
+from notifications import NotificationManager, DiscordNotifier, TelegramNotifier
+
+# Version
+VERSION = "1.2.0"
 
 # ============================================================================
 # CONFIGURATION - Loaded from Environment Variables
 # ============================================================================
 
+# Discord Configuration
 DISCORD_WEBHOOK_URL = os.environ.get('DISCORD_WEBHOOK_URL', '')
+
+# Telegram Configuration
+TELEGRAM_ENABLED = os.environ.get('TELEGRAM_ENABLED', 'false').lower() == 'true'
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '')
+TELEGRAM_PARSE_MODE = os.environ.get('TELEGRAM_PARSE_MODE', 'HTML')
+
+# General Configuration
 IPINFO_TOKEN = os.environ.get('IPINFO_TOKEN', '')
 IP_DB_FILE = os.environ.get('IP_DB_FILE', '/data/ipinfo.db')
 LOG_FILE = os.environ.get('LOG_FILE', '/logs/wanwatcher.log')
@@ -244,186 +260,32 @@ def save_current_ips(ipv4, ipv6):
         raise
 
 # ============================================================================
-# Discord Notification Functions
+# Notification Setup
 # ============================================================================
 
-def send_discord_notification(current_ips, previous_ips, geo_data=None, is_first_run=False):
-    """Send rich embed notification to Discord with both IPv4 and IPv6"""
-    
-    if not DISCORD_WEBHOOK_URL:
-        logging.error("DISCORD_WEBHOOK_URL not set!")
-        return False
-    
-    # Determine what changed
-    ipv4_changed = current_ips['ipv4'] != previous_ips['ipv4']
-    ipv6_changed = current_ips['ipv6'] != previous_ips['ipv6']
-    
-    # Build title and description based on what changed
-    if is_first_run:
-        title = "🟢 Initial IP Detection"
-        description = f"Monitoring started for **{SERVER_NAME}**"
-        color = 3066993  # Green
-    elif ipv4_changed and ipv6_changed:
-        title = "🔄 Both IP Addresses Changed"
-        description = f"IPv4 and IPv6 for **{SERVER_NAME}** have been updated"
-        color = 15844367  # Gold/Orange
-    elif ipv4_changed:
-        title = "🔄 IPv4 Address Changed"
-        description = f"IPv4 for **{SERVER_NAME}** has been updated"
-        color = 15844367  # Gold/Orange
-    elif ipv6_changed:
-        title = "🔄 IPv6 Address Changed"
-        description = f"IPv6 for **{SERVER_NAME}** has been updated"
-        color = 15844367  # Gold/Orange
-    else:
-        # No changes (shouldn't happen but handle it)
-        title = "✅ IP Status Update"
-        description = f"IP addresses confirmed for **{SERVER_NAME}**"
-        color = 3066993  # Green
-    
-    # Build fields
-    fields = []
-    
-    # IPv4 section
-    if current_ips['ipv4']:
-        fields.append({
-            "name": "📍 Current IPv4",
-            "value": f"`{current_ips['ipv4']}`",
-            "inline": True
-        })
-        if previous_ips['ipv4'] and ipv4_changed and not is_first_run:
-            fields.append({
-                "name": "📌 Previous IPv4",
-                "value": f"`{previous_ips['ipv4']}`",
-                "inline": True
-            })
-    
-    # Add spacer for better layout
-    if current_ips['ipv4'] and current_ips['ipv6']:
-        fields.append({"name": "\u200b", "value": "\u200b", "inline": False})
-    
-    # IPv6 section
-    if current_ips['ipv6']:
-        fields.append({
-            "name": "📍 Current IPv6",
-            "value": f"`{current_ips['ipv6']}`",
-            "inline": False  # IPv6 addresses are long
-        })
-        if previous_ips['ipv6'] and ipv6_changed and not is_first_run:
-            fields.append({
-                "name": "📌 Previous IPv6",
-                "value": f"`{previous_ips['ipv6']}`",
-                "inline": False
-            })
-    elif current_ips['ipv4']:  # Only IPv4 available
-        fields.append({
-            "name": "ℹ️ IPv6 Status",
-            "value": "Not available or not configured",
-            "inline": False
-        })
-    
-    # Add spacer before geo data
-    fields.append({"name": "\u200b", "value": "\u200b", "inline": False})
-    
-    # Add geographic information if available
-    if geo_data:
-        geo_text = f"🌍 {geo_data.get('city', 'Unknown')}, {geo_data.get('region', '')}, {geo_data.get('country', 'Unknown')}\n"
-        geo_text += f"🏢 {geo_data.get('org', 'Unknown ISP')}\n"
-        geo_text += f"🕐 {geo_data.get('timezone', 'Unknown')}"
-        
-        fields.append({
-            "name": "📍 Location Information",
-            "value": geo_text,
-            "inline": False
-        })
-    
-    # Add timestamp (using Discord timestamp format)
-    local_timestamp = int(datetime.now().timestamp())
-    fields.append({
-        "name": "⏰ Detected At",
-        "value": f"<t:{local_timestamp}:F>",
-        "inline": False
-    })
-    
-    # Add Docker info
-    fields.append({
-        "name": "🐳 Environment",
-        "value": "Running in Docker",
-        "inline": True
-    })
-    
-    # Build embed
-    embed = {
-        "title": f"🌐 {title}",
-        "description": description,
-        "color": color,
-        "fields": fields,
-        "footer": {
-            "text": f"WANwatcher on {SERVER_NAME}"
-        },
-        "timestamp": datetime.now().astimezone().isoformat()
-    }
-    
-    # Build payload
-    payload = {
-        "username": BOT_NAME,
-        "embeds": [embed]
-    }
-    
-    # Send to Discord
-    try:
-        response = requests.post(
-            DISCORD_WEBHOOK_URL,
-            data=json.dumps(payload),
-            headers={"Content-Type": "application/json"},
-            timeout=10
-        )
-        response.raise_for_status()
-        logging.info(f"Discord notification sent successfully (Status: {response.status_code})")
-        return True
-    except Exception as e:
-        logging.error(f"Failed to send Discord notification: {e}")
-        return False
+# Initialize notification manager (global)
+notification_manager = NotificationManager()
 
-def send_error_notification(error_message):
-    """Send error notification to Discord"""
-    if not DISCORD_WEBHOOK_URL:
-        return
-        
-    payload = {
-        "username": BOT_NAME,
-        "embeds": [{
-            "title": "⚠️ WANwatcher Error",
-            "description": f"An error occurred on {SERVER_NAME}",
-            "color": 15158332,  # Red
-            "fields": [
-                {
-                    "name": "Error Details",
-                    "value": f"```{error_message[:1000]}```",  # Limit to 1000 chars
-                    "inline": False
-                },
-                {
-                    "name": "🐳 Environment",
-                    "value": "Running in Docker",
-                    "inline": True
-                }
-            ],
-            "footer": {
-                "text": f"WANwatcher on {SERVER_NAME}"
-            },
-            "timestamp": datetime.now().astimezone().isoformat()
-        }]
-    }
+def initialize_notifications():
+    """Initialize all configured notification providers"""
     
-    try:
-        requests.post(
-            DISCORD_WEBHOOK_URL,
-            data=json.dumps(payload),
-            headers={"Content-Type": "application/json"},
-            timeout=10
-        )
-    except:
-        pass  # Don't fail if error notification fails
+    # Add Discord if configured
+    if DISCORD_WEBHOOK_URL:
+        discord = DiscordNotifier(DISCORD_WEBHOOK_URL, BOT_NAME)
+        notification_manager.add_provider(discord)
+        logging.info("Discord notifications enabled")
+    
+    # Add Telegram if configured
+    if TELEGRAM_ENABLED and TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+        telegram = TelegramNotifier(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TELEGRAM_PARSE_MODE)
+        notification_manager.add_provider(telegram)
+        logging.info("Telegram notifications enabled")
+        
+        # Send test message on startup (optional - commented out)
+        # telegram.send_test_message()
+    
+    if not notification_manager.providers:
+        logging.warning("No notification providers configured!")
 
 # ============================================================================
 # Main Check Function
@@ -452,7 +314,9 @@ def check_ip():
         
         if is_first_run:
             logging.info("First run detected - sending initial notification")
-            send_discord_notification(current_ips, previous_ips, geo_data, is_first_run=True)
+            notification_manager.notify_all(
+                current_ips, previous_ips, geo_data, True, SERVER_NAME
+            )
             save_current_ips(current_ips['ipv4'], current_ips['ipv6'])
             
         elif ipv4_changed or ipv6_changed:
@@ -466,7 +330,9 @@ def check_ip():
             for msg in change_msgs:
                 logging.warning(f"  {msg}")
             
-            send_discord_notification(current_ips, previous_ips, geo_data, is_first_run=False)
+            notification_manager.notify_all(
+                current_ips, previous_ips, geo_data, False, SERVER_NAME
+            )
             save_current_ips(current_ips['ipv4'], current_ips['ipv6'])
             
         else:
@@ -477,7 +343,7 @@ def check_ip():
     except Exception as e:
         error_msg = f"Error during IP check: {str(e)}"
         logging.error(error_msg, exc_info=True)
-        send_error_notification(error_msg)
+        notification_manager.notify_error(error_msg, SERVER_NAME)
         return False
 
 # ============================================================================
@@ -489,18 +355,26 @@ def main():
     setup_logging()
     
     logging.info("=" * 60)
-    logging.info("WANwatcher Docker started (with IPv6 support)")
+    logging.info(f"WANwatcher v{VERSION} Docker started")
     logging.info(f"Server Name: {SERVER_NAME}")
     logging.info(f"Check Interval: {CHECK_INTERVAL} seconds ({CHECK_INTERVAL//60} minutes)")
-    logging.info(f"Discord Webhook: {'Configured' if DISCORD_WEBHOOK_URL else 'NOT SET!'}")
-    logging.info(f"ipinfo.io Token: {'Configured' if IPINFO_TOKEN else 'Not configured (geo data disabled)'}")
     logging.info(f"IPv4 Monitoring: {'Enabled' if MONITOR_IPV4 else 'Disabled'}")
     logging.info(f"IPv6 Monitoring: {'Enabled' if MONITOR_IPV6 else 'Disabled'}")
     logging.info("=" * 60)
     
-    if not DISCORD_WEBHOOK_URL:
-        logging.error("FATAL: DISCORD_WEBHOOK_URL environment variable is not set!")
-        logging.error("Please set DISCORD_WEBHOOK_URL before running the container")
+    # Initialize notifications
+    initialize_notifications()
+    
+    logging.info("Notification Status:")
+    logging.info(f"  Discord: {'Configured' if DISCORD_WEBHOOK_URL else 'Not configured'}")
+    logging.info(f"  Telegram: {'Enabled' if TELEGRAM_ENABLED and TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID else 'Not configured'}")
+    logging.info(f"  ipinfo.io: {'Configured' if IPINFO_TOKEN else 'Not configured (geo data disabled)'}")
+    logging.info("=" * 60)
+    
+    # Validation
+    if not notification_manager.providers:
+        logging.error("FATAL: No notification providers configured!")
+        logging.error("Please configure at least Discord or Telegram")
         sys.exit(1)
     
     if not MONITOR_IPV4 and not MONITOR_IPV6:
@@ -528,7 +402,7 @@ def main():
             break
         except Exception as e:
             logging.error(f"Unexpected error in main loop: {e}", exc_info=True)
-            send_error_notification(f"Main loop error: {str(e)}")
+            notification_manager.notify_error(f"Main loop error: {str(e)}", SERVER_NAME)
             # Wait a bit before retrying
             time.sleep(60)
 

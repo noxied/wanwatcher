@@ -1,195 +1,246 @@
 # Security Policy
 
-## 🔒 Supported Versions
-
-We release security updates for the following versions:
+## 🔐 Supported Versions
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
-| < 1.0   | :x:                |
-
----
-
-## 🐛 Reporting a Vulnerability
-
-We take security vulnerabilities seriously. If you discover a security issue, please follow these guidelines:
-
-### 📧 How to Report
-
-**Please DO NOT report security vulnerabilities through public GitHub issues.**
-
-Instead, report security vulnerabilities by:
-
-1. **Opening a private security advisory:**
-   - Go to https://github.com/noxied/wanwatcher/security/advisories/new
-   - Fill out the form with details
-   - We'll respond within 48 hours
-
-2. **OR create a private issue** with the "security" label
-
-### 📋 What to Include
-
-Please include as much information as possible:
-
-- **Type of vulnerability** (e.g., code injection, exposure of sensitive data)
-- **Full paths of source file(s)** related to the vulnerability
-- **Location of affected code** (tag/branch/commit or direct URL)
-- **Step-by-step instructions** to reproduce the issue
-- **Proof-of-concept or exploit code** (if possible)
-- **Impact of the vulnerability** (what an attacker could do)
-- **Suggested fix** (if you have one)
-
-### ⏱️ Response Timeline
-
-- **Initial response:** Within 48 hours
-- **Status update:** Within 7 days
-- **Fix timeline:** Depends on severity
-  - **Critical:** Within 7 days
-  - **High:** Within 30 days
-  - **Medium:** Within 90 days
-  - **Low:** Next regular release
-
-### 🏆 Recognition
-
-- We'll acknowledge your contribution in the security advisory
-- Your name will be added to our security hall of fame (if you wish)
-- We appreciate responsible disclosure!
-
----
+| 1.2.x   | ✅ Yes            |
+| 1.1.x   | ✅ Yes            |
+| 1.0.x   | ⚠️ Limited (critical fixes only) |
+| < 1.0   | ❌ No             |
 
 ## 🛡️ Security Best Practices
 
-When using WANwatcher:
+### Never Commit Secrets
 
-### Discord Webhook Security
+**DO NOT** commit the following to version control:
+- ❌ Discord webhook URLs
+- ❌ Telegram bot tokens
+- ❌ Telegram chat IDs
+- ❌ ipinfo.io API tokens
+- ❌ Any credentials or API keys
 
-- ✅ **Never share your webhook URL publicly**
-- ✅ **Treat it like a password** - it provides write access to your Discord channel
-- ✅ **Regenerate webhook** if accidentally exposed
-- ✅ **Use environment variables** - never hardcode webhooks in files
-- ✅ **Don't commit `.env` files** to git
+### ✅ Safe Configuration Methods
 
-### ipinfo.io Token Security
+**Option 1: Environment Variables (Recommended)**
+```bash
+export DISCORD_WEBHOOK_URL="your_webhook"
+export TELEGRAM_BOT_TOKEN="your_token"
+docker run -e DISCORD_WEBHOOK_URL -e TELEGRAM_BOT_TOKEN wanwatcher
+```
 
-- ✅ **Keep your token private**
-- ✅ **Use environment variables** for Docker
-- ✅ **Don't commit tokens** to version control
-- ✅ **Regenerate tokens** if exposed
+**Option 2: .env File (Local Development)**
+```bash
+# Create .env file (add to .gitignore!)
+echo "DISCORD_WEBHOOK_URL=your_webhook" > .env
+echo "TELEGRAM_BOT_TOKEN=your_token" >> .env
 
-### Docker Security
+# Use with docker-compose
+docker-compose --env-file .env up -d
+```
 
-- ✅ **Use official images** from Docker Hub (`noxied/wanwatcher`)
-- ✅ **Keep containers updated** - `docker pull` regularly
-- ✅ **Run with limited resources** - use memory/CPU limits
-- ✅ **Use read-only volumes** where possible
-- ✅ **Don't run as root** (future improvement planned)
+**Option 3: Docker Secrets (Production)**
+```bash
+# Create secrets
+echo "your_webhook" | docker secret create discord_webhook -
+echo "your_token" | docker secret create telegram_token -
 
-### Traditional Installation Security
+# Use in docker-compose.yml
+secrets:
+  - discord_webhook
+  - telegram_token
+```
 
-- ✅ **Keep Python updated** to latest stable version
-- ✅ **Install dependencies from official sources** only
-- ✅ **Use virtual environments** to isolate dependencies
-- ✅ **Set proper file permissions** on config files
-- ✅ **Run as non-root user** when possible
+**Option 4: Portainer/Kubernetes Secrets**
+- Use built-in secret management
+- Never expose secrets in YAML files
+
+### ❌ Bad Practices to Avoid
+
+```yaml
+# DON'T DO THIS - Committing secrets to git
+environment:
+  DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/1234/abcd"
+  TELEGRAM_BOT_TOKEN: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+```
+
+```yaml
+# DON'T DO THIS - Hardcoding in Dockerfile
+ENV DISCORD_WEBHOOK_URL="https://discord.com/..."
+```
+
+### ✅ Good Practices
+
+```yaml
+# DO THIS - Use placeholders in git
+environment:
+  DISCORD_WEBHOOK_URL: "${DISCORD_WEBHOOK_URL}"
+  TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN}"
+```
+
+```yaml
+# DO THIS - Reference external secrets
+environment:
+  DISCORD_WEBHOOK_URL: "your_webhook_here_configure_in_portainer"
+```
+
+## 🔍 Security Considerations
 
 ### Network Security
 
-- ✅ **Use HTTPS** for all webhook URLs (Discord uses HTTPS by default)
-- ✅ **Firewall rules** - only allow necessary outbound connections
-- ✅ **Monitor logs** for suspicious activity
-- ✅ **Validate SSL certificates** (enabled by default in Python requests)
+**WANwatcher Network Requirements:**
+- ✅ Outbound HTTPS (443) to:
+  - Discord API (discord.com)
+  - Telegram API (api.telegram.org)
+  - IP detection services (api.ipify.org, etc.)
+  - ipinfo.io (if configured)
+- ❌ No inbound ports required
+- ❌ No exposed services
 
----
+**Recommendations:**
+- Use Docker networks for isolation
+- Consider firewall rules limiting outbound connections
+- Monitor container network activity
 
-## 🔐 Known Security Considerations
+### Webhook/Token Security
 
-### Discord Webhook URLs
+**Discord Webhooks:**
+- Treat webhook URLs as passwords
+- Anyone with the URL can send messages to your channel
+- Regenerate webhooks if compromised
+- Use Discord audit logs to monitor usage
 
-**Risk:** Webhook URLs provide write access to Discord channels.
+**Telegram Bots:**
+- Bot tokens provide full control of the bot
+- Rotate tokens if compromised
+- Use @BotFather to revoke/regenerate tokens
+- Only share Chat ID with trusted parties
 
-**Mitigation:**
-- URLs are never logged or displayed in WANwatcher
-- Store as environment variables (Docker) or in protected config files
-- Regenerate webhooks immediately if exposed
+**ipinfo.io Tokens:**
+- Free tier has rate limits
+- Don't share tokens publicly
+- Monitor usage for suspicious activity
 
-### IP Address Exposure
+### Container Security
 
-**Risk:** Your WAN IP address is sent to Discord.
+**Best Practices:**
+- ✅ Run as non-root user (if possible)
+- ✅ Use specific version tags (not :latest) in production
+- ✅ Scan images for vulnerabilities
+- ✅ Keep base images updated
+- ✅ Limit container resources
+- ✅ Use read-only file systems where possible
 
-**Mitigation:**
-- This is intentional behavior - monitor your Discord channel access
-- Use private Discord channels
-- Consider who has access to your Discord server
+**Example Secure Configuration:**
+```yaml
+services:
+  wanwatcher:
+    image: noxied/wanwatcher:1.2.0  # Specific version
+    read_only: true  # Read-only filesystem
+    security_opt:
+      - no-new-privileges:true  # Prevent privilege escalation
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+```
 
-### Third-Party Services
+### Data Security
 
-**Dependencies:**
-- Discord API (discord.com)
-- IP detection services (api.ipify.org, ipapi.co, ifconfig.me)
-- ipinfo.io (optional, for geographic data)
+**Database File:**
+- Contains your current/previous IP addresses
+- Not sensitive but could reveal location
+- Stored in `/data/ipinfo.db`
+- Consider encrypting volume if needed
 
-**Mitigation:**
-- All use HTTPS
-- Requests library validates SSL certificates
-- Multiple fallback services for reliability
+**Log Files:**
+- May contain IP addresses
+- Stored in `/logs/`
+- Rotate and clean old logs regularly
+- Don't expose log directory publicly
 
-### Log Files
+### Secrets Rotation
 
-**Risk:** Logs may contain IP addresses and partial webhook URLs (for debugging).
+**Recommended Schedule:**
+- Discord Webhooks: Every 6-12 months or when compromised
+- Telegram Tokens: Every 6-12 months or when compromised
+- ipinfo.io Tokens: Yearly or when approaching rate limits
 
-**Mitigation:**
-- Logs stored locally only
-- Set proper file permissions
-- Regularly rotate/clean logs
-- Never share full logs publicly without redacting sensitive info
+**How to Rotate:**
 
----
+1. **Discord Webhook:**
+   - Create new webhook in Discord
+   - Update `DISCORD_WEBHOOK_URL`
+   - Restart container
+   - Delete old webhook
 
-## 🔄 Security Updates
+2. **Telegram Bot:**
+   - Message @BotFather
+   - Use `/revoke` command
+   - Get new token
+   - Update `TELEGRAM_BOT_TOKEN`
+   - Restart container
 
-We'll announce security updates through:
+3. **ipinfo.io Token:**
+   - Generate new token at ipinfo.io
+   - Update `IPINFO_TOKEN`
+   - Restart container
+   - Revoke old token
 
-1. **GitHub Security Advisories:** https://github.com/noxied/wanwatcher/security/advisories
-2. **Release Notes:** Version-specific security fixes documented
-3. **CHANGELOG.md:** Security fixes marked with `[SECURITY]`
+## 🚨 Reporting a Vulnerability
 
-To stay informed:
-- Watch the repository for security advisories
-- Check releases regularly
-- Update to latest version promptly
+If you discover a security vulnerability in WANwatcher:
 
----
+1. **DO NOT** open a public issue
+2. **DO NOT** disclose publicly until fixed
+3. **DO** email: [your-email@example.com]
+4. Include:
+   - Description of vulnerability
+   - Steps to reproduce
+   - Potential impact
+   - Suggested fix (if any)
 
-## 📚 Additional Resources
+**Response Time:**
+- Acknowledgment: Within 48 hours
+- Initial assessment: Within 1 week
+- Fix timeline: Depends on severity
 
-- [GitHub Security Best Practices](https://docs.github.com/en/code-security)
-- [Docker Security](https://docs.docker.com/engine/security/)
-- [Python Security](https://python.readthedocs.io/en/stable/library/security.html)
-- [Discord Webhooks Security](https://discord.com/developers/docs/resources/webhook)
+**Severity Levels:**
+- **Critical:** Fix within 24-48 hours
+- **High:** Fix within 1 week
+- **Medium:** Fix within 1 month
+- **Low:** Fix in next release
 
----
-
-## ✅ Security Checklist for Users
+## ✅ Security Checklist
 
 Before deploying WANwatcher:
 
-- [ ] Webhook URL stored securely (environment variable or protected file)
-- [ ] ipinfo.io token stored securely (if used)
-- [ ] Logs directory has proper permissions
-- [ ] Using latest version
-- [ ] Monitoring enabled (logs review)
-- [ ] Discord channel access limited to trusted users
-- [ ] Regular updates planned
+- [ ] All secrets stored securely (not in git)
+- [ ] Using specific version tags (not :latest)
+- [ ] Webhook/token access restricted
+- [ ] Container resources limited
+- [ ] Logs properly secured
+- [ ] Network access restricted to required services
+- [ ] Regular update schedule planned
+- [ ] Backup/recovery plan in place
+- [ ] Monitoring configured
+- [ ] Documentation read and understood
+
+## 📚 Additional Resources
+
+- [Docker Security Best Practices](https://docs.docker.com/engine/security/)
+- [OWASP Docker Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html)
+- [Discord API Security](https://discord.com/developers/docs/topics/oauth2)
+- [Telegram Bot Security](https://core.telegram.org/bots#6-botfather)
+
+## 🔄 Security Updates
+
+Subscribe to security updates:
+- Watch the GitHub repository
+- Follow releases
+- Enable Dependabot alerts (for maintainers)
 
 ---
 
-## 🙏 Thank You
-
-Thank you for helping keep WANwatcher and its users safe!
-
-Security is everyone's responsibility. If you have suggestions for improving security, please open an issue or submit a pull request.
-
----
-
-**Report Security Issues:** https://github.com/noxied/wanwatcher/security/advisories/new
+**Remember: Security is a shared responsibility. While we strive to make WANwatcher secure, proper configuration and deployment practices are essential.**

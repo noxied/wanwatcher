@@ -8,60 +8,52 @@ services:
     
     environment:
       # ========================================
-      # Required Configuration
+      # Discord Configuration
       # ========================================
-      
-      # Your Discord webhook URL (REQUIRED)
-      # Get from: Discord Server → Settings → Integrations → Webhooks
-      DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_TOKEN"
+      # Get your webhook from Discord Server Settings > Integrations > Webhooks
+      DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
       
       # ========================================
-      # Optional Basic Configuration
+      # Telegram Configuration (NEW in v1.2.0)
       # ========================================
+      # To enable Telegram notifications:
+      # 1. Create bot with @BotFather on Telegram
+      # 2. Get your bot token from @BotFather
+      # 3. Get your chat ID from @userinfobot
+      # 4. Set TELEGRAM_ENABLED to "true"
+      TELEGRAM_ENABLED: "false"
+      TELEGRAM_BOT_TOKEN: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+      TELEGRAM_CHAT_ID: "123456789"
+      TELEGRAM_PARSE_MODE: "HTML"  # HTML or Markdown
       
-      # Optional: ipinfo.io API token for geographic data
-      # Get free token (50k requests/month) at: https://ipinfo.io/signup
-      # Without token: No city/region/ISP information in notifications
+      # ========================================
+      # Server Configuration
+      # ========================================
+      SERVER_NAME: "My Server"
+      BOT_NAME: "WAN IP Watcher"
+      CHECK_INTERVAL: "900"  # 15 minutes (in seconds)
+      
+      # ========================================
+      # Geographic Data (Optional)
+      # ========================================
+      # Get free token from https://ipinfo.io/signup
       IPINFO_TOKEN: ""
       
-      # Optional: Server identification name (appears in Discord notifications)
-      SERVER_NAME: "My Docker Server"
-      
-      # Optional: Discord bot display name
-      BOT_NAME: "WANwatcher"
-      
-      # Optional: Check interval in seconds
-      # Examples: 300=5min, 900=15min (default), 1800=30min, 3600=1hr, 21600=6hr
-      CHECK_INTERVAL: "900"
-      
       # ========================================
-      # NEW: IPv6 Configuration (v1.1.0+)
+      # IPv4 & IPv6 Monitoring
       # ========================================
-      
-      # Monitor IPv4 addresses (default: true)
-      # Set to "false" to disable IPv4 monitoring
       MONITOR_IPV4: "true"
-      
-      # Monitor IPv6 addresses (default: true)
-      # Set to "false" to disable IPv6 monitoring
       MONITOR_IPV6: "true"
-      
-      # Configuration examples:
-      # - Monitor both: MONITOR_IPV4="true", MONITOR_IPV6="true" (default)
-      # - IPv4 only: MONITOR_IPV4="true", MONITOR_IPV6="false"
-      # - IPv6 only: MONITOR_IPV4="false", MONITOR_IPV6="true"
     
     volumes:
       # Persist IP database across container restarts
-      # Contains current and previous IP addresses (IPv4 and IPv6)
       - ./data:/data
       
       # Persist logs across container restarts
-      # Logs all IP checks, changes, and errors
       - ./logs:/logs
     
     # ========================================
-    # Health Check (Optional but Recommended)
+    # Health Check
     # ========================================
     healthcheck:
       test: ["CMD", "python3", "-c", "import os; exit(0 if os.path.exists('/data/ipinfo.db') else 1)"]
@@ -76,65 +68,33 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'       # Maximum 50% of one CPU core
-          memory: 128M      # Maximum 128MB RAM
+          cpus: '0.5'
+          memory: 128M
         reservations:
-          cpus: '0.1'       # Reserve 10% of one CPU core
-          memory: 32M       # Reserve 32MB RAM
+          cpus: '0.1'
+          memory: 32M
     
     # ========================================
-    # Network Configuration (Optional)
-    # ========================================
-    
-    # Uncomment the line below if you experience network connectivity issues
-    # or if you need the container to use the host's network stack
-    # network_mode: "host"
-    
-    # ========================================
-    # Logging Configuration (Optional)
+    # Logging Configuration
     # ========================================
     logging:
       driver: "json-file"
       options:
-        max-size: "10m"   # Maximum size of each log file
-        max-file: "3"     # Keep 3 log files (30MB total)
+        max-size: "10m"
+        max-file: "3"
 
 # ============================================
-# Additional Configuration Examples
+# Configuration Notes
 # ============================================
 
-# Example 1: IPv4 Only Configuration
-# ------------------------------------
-# environment:
-#   DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/..."
-#   MONITOR_IPV4: "true"
-#   MONITOR_IPV6: "false"
+# Notification Options:
+# 1. Discord only: Configure DISCORD_WEBHOOK_URL, leave TELEGRAM_ENABLED="false"
+# 2. Telegram only: Set TELEGRAM_ENABLED="true" + configure token/chat_id, remove Discord URL
+# 3. Both platforms: Configure both (recommended for redundancy)
 
-# Example 2: IPv6 Only Configuration
-# ------------------------------------
-# environment:
-#   DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/..."
-#   MONITOR_IPV4: "false"
-#   MONITOR_IPV6: "true"
+# At least one notification platform must be configured!
 
-# Example 3: Dual-Stack with Geographic Data
-# --------------------------------------------
-# environment:
-#   DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/..."
-#   IPINFO_TOKEN: "your_actual_token_here"
-#   SERVER_NAME: "Home Lab Server"
-#   MONITOR_IPV4: "true"
-#   MONITOR_IPV6: "true"
-#   CHECK_INTERVAL: "300"
-
-# Example 4: Frequent Checks (5 minutes)
-# ----------------------------------------
-# environment:
-#   DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/..."
-#   CHECK_INTERVAL: "300"
-
-# Example 5: Infrequent Checks (6 hours)
-# ----------------------------------------
-# environment:
-#   DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/..."
-#   CHECK_INTERVAL: "21600"
+# Security Note:
+# - NEVER commit your actual tokens/webhooks to version control
+# - Use environment variables or docker secrets for production
+# - Create a separate docker-compose.override.yml with your actual values (add to .gitignore)
