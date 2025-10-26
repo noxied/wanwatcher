@@ -2,11 +2,11 @@ FROM python:3.11-slim
 
 # Set metadata
 LABEL maintainer="noxied"
-LABEL description="WAN IP Monitoring with Discord Notifications - IPv4 & IPv6 Support"
-LABEL version="1.1.0"
+LABEL description="WAN IP Monitoring with Multi-Platform Notifications - IPv4 & IPv6 Support"
+LABEL version="1.2.0"
 LABEL org.opencontainers.image.title="WANwatcher"
-LABEL org.opencontainers.image.description="Monitor WAN IPv4/IPv6 addresses with Discord notifications"
-LABEL org.opencontainers.image.version="1.1.0"
+LABEL org.opencontainers.image.description="Monitor WAN IPv4/IPv6 addresses with Discord and Telegram notifications"
+LABEL org.opencontainers.image.version="1.2.0"
 LABEL org.opencontainers.image.authors="noxied"
 LABEL org.opencontainers.image.url="https://github.com/noxied/wanwatcher"
 LABEL org.opencontainers.image.source="https://github.com/noxied/wanwatcher"
@@ -20,13 +20,18 @@ WORKDIR /app
 RUN pip install --no-cache-dir requests
 
 # Copy application files
-COPY wanwatcher*.py /app/
+COPY wanwatcher_docker.py /app/
+COPY notifications.py /app/
 
 # Create directories for data persistence
 RUN mkdir -p /data /logs
 
 # Set environment variables with defaults
 ENV DISCORD_WEBHOOK_URL="" \
+    TELEGRAM_ENABLED="false" \
+    TELEGRAM_BOT_TOKEN="" \
+    TELEGRAM_CHAT_ID="" \
+    TELEGRAM_PARSE_MODE="HTML" \
     IPINFO_TOKEN="" \
     SERVER_NAME="WANwatcher Docker" \
     IP_DB_FILE="/data/ipinfo.db" \
@@ -40,7 +45,7 @@ ENV DISCORD_WEBHOOK_URL="" \
 COPY ipinfo.py /usr/local/lib/python3.11/site-packages/ipinfo.py
 
 # Set script as executable
-RUN chmod +x /app/wanwatcher.py /app/wanwatcher_docker.py
+RUN chmod +x /app/wanwatcher_docker.py
 
 # Health check - verifies the database file exists
 HEALTHCHECK --interval=5m --timeout=10s --start-period=30s --retries=3 \

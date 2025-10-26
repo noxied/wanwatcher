@@ -1,28 +1,90 @@
-__pycache__/
-*.py[cod]
-*.pyc
-.Python
-venv/
-ENV/
-*.egg-info/
+# ============================================
+# WANwatcher .gitignore
+# ============================================
 
-# Data
+# Environment files with secrets
+.env
+.env.local
+.env.production
+*.env
+
+# Docker Compose override files (may contain secrets)
+docker-compose.override.yml
+docker-compose.local.yml
+docker-compose.*.local.yml
+
+# Private configuration files
+*PRIVATE*
+*private*
+*secret*
+*.secret
+
+# Data and logs
 data/
 logs/
-*.db
 *.log
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
 
 # IDE
 .vscode/
 .idea/
 *.swp
+*.swo
+*~
 .DS_Store
 
-# Docker
-docker-compose.override.yml
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
 
-# Secrets
-.env
-*.pem
+# Temporary files
+*.tmp
+*.bak
 *.backup
-*.backup
+.cache/
+
+# Docker
+*.tar
+*.tar.gz
+
+# Secrets and tokens (extra safety)
+*webhook*
+*token*
+*secret*
+*password*
+*credentials*
+
+# Keep example files
+!docker-compose.yml
+!docker-compose.example.yml
+!.env.example
