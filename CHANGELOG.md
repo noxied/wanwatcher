@@ -5,164 +5,204 @@ All notable changes to WANwatcher will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+---
+
+## [1.3.0] - 2025-XX-XX
+
+### Added
+- **Email Notifications** 📧 - Send alerts via SMTP (Gmail, Outlook, custom SMTP)
+- HTML formatted emails with professional responsive design
+- Plain text email fallback for compatibility
+- Support for multiple email recipients (comma-separated)
+- TLS/SSL support for secure SMTP connections
+- **Custom Discord Webhook Avatars** 🎨 - Set custom avatar URL or use embedded default
+- Embedded default avatar (`wan_watcher.png`) included in Docker image
+- Email-specific error handling and logging
+- Gmail app password documentation
+
+### Changed
+- Updated all product descriptions from "Discord notifications" to "Multi-platform notifications"
+- Dockerfile labels updated to reflect Discord, Telegram, and Email support
+- README.md updated with email configuration instructions
+- docker-compose.yml updated with email configuration section
+- Improved notification provider initialization
+
+### New Environment Variables
+- `EMAIL_ENABLED` - Enable/disable email notifications (default: false)
+- `EMAIL_SMTP_HOST` - SMTP server hostname
+- `EMAIL_SMTP_PORT` - SMTP port (587 for TLS, 465 for SSL)
+- `EMAIL_SMTP_USER` - SMTP username (usually email address)
+- `EMAIL_SMTP_PASSWORD` - SMTP password or app password
+- `EMAIL_FROM` - From email address
+- `EMAIL_TO` - To email address(es), comma-separated for multiple
+- `EMAIL_USE_TLS` - Use TLS encryption (recommended)
+- `EMAIL_USE_SSL` - Use SSL encryption (alternative to TLS)
+- `EMAIL_SUBJECT_PREFIX` - Customize email subject prefix (default: "[WANwatcher]")
+- `DISCORD_AVATAR_URL` - Custom Discord webhook avatar URL (optional)
+
+### Fixed
+- Improved SMTP error handling
+- Better email connection timeout handling
+- Enhanced notification provider error logging
+
+---
+
 ## [1.2.0] - 2025-10-26
 
 ### Added
-- **Telegram Bot Support** - Send notifications via Telegram bot
-  - HTML formatted messages
-  - Configurable parse mode (HTML or Markdown)
-  - Chat ID and bot token configuration
-- **Multi-Platform Notification System** - New architecture supporting multiple notification providers
-  - `NotificationProvider` abstract base class
-  - `DiscordNotifier` class for Discord webhooks
-  - `TelegramNotifier` class for Telegram bots
-  - `NotificationManager` class for managing multiple providers
-- **Notification Module** - Separate `notifications.py` module for clean architecture
-- **Version Display** - All notifications now include WANwatcher version
-  - Version shown in Environment field
-  - Version shown in notification footer
-  - Version shown in error notifications
-- **New Environment Variables**:
-  - `TELEGRAM_ENABLED` - Enable/disable Telegram notifications
-  - `TELEGRAM_BOT_TOKEN` - Telegram bot token
-  - `TELEGRAM_CHAT_ID` - Telegram chat ID for notifications
-  - `TELEGRAM_PARSE_MODE` - Message format (HTML or Markdown)
+- **Telegram Bot Support** - Receive notifications via Telegram
+- Multi-platform notification architecture
+- `notifications.py` module with provider pattern
+- HTML formatted Telegram messages
+- **Version Display** - All notifications now show version number
+- Notification provider abstraction layer
+- Comprehensive Telegram documentation
 
 ### Changed
-- **Discord Notification Layout** - Improved spacing and readability
-  - Fixed spacing between Current and Previous IPv4 fields
-  - Added proper 3-column layout for better visual organization
-  - Enhanced embed structure
-- **Error Notifications** - Now sent to all configured notification platforms
-- **Startup Logs** - More detailed information about configured notification providers
+- Improved Discord embed layout and spacing
+- Better formatted notification messages
+- Enhanced error handling
+- Updated Docker image labels
 
-### Fixed
-- Discord embed spacing issue between IP address fields
-- Missing version information in notifications
-- Notification layout inconsistencies
+### New Environment Variables
+- `TELEGRAM_ENABLED` - Enable/disable Telegram notifications
+- `TELEGRAM_BOT_TOKEN` - Bot token from @BotFather
+- `TELEGRAM_CHAT_ID` - Your Telegram chat ID
+- `TELEGRAM_PARSE_MODE` - Message format (HTML or Markdown)
 
 ### Security
-- Documented security best practices for token/webhook management
-- Added warnings about not committing secrets to version control
+- Added SECURITY.md with best practices
+- Environment variable security documentation
+- Secrets management guidelines
+- `.gitignore` for sensitive files
 
 ---
 
 ## [1.1.0] - 2025-10-25
 
 ### Added
-- **IPv6 Support** - Full monitoring of IPv6 addresses
-  - Separate detection for IPv6
-  - Configurable IPv6 monitoring via `MONITOR_IPV6`
-  - IPv6 change detection and notifications
-- **Dual IP Monitoring** - Track both IPv4 and IPv6 simultaneously
-  - New database format supporting both protocols
-  - Automatic migration from old format
-- **Enhanced Notifications** - Rich embeds showing both IPv4 and IPv6
-  - Color-coded notifications (green for initial, orange for changes)
-  - Detailed change information
-  - Separate fields for current and previous IPs
-- **Configuration Options**:
-  - `MONITOR_IPV4` - Enable/disable IPv4 monitoring
-  - `MONITOR_IPV6` - Enable/disable IPv6 monitoring
+- **IPv6 Support** - Monitor both IPv4 and IPv6 addresses
+- Configurable IPv4/IPv6 monitoring via environment variables
+- Improved IP change detection logic
+- Better null handling for IP addresses
 
 ### Changed
-- Database format now stores both IPv4 and IPv6 as JSON
-- Notification embeds restructured for dual-protocol support
-- Log messages enhanced with both IPv4 and IPv6 information
+- Updated notification format to display both IPv4 and IPv6
+- Improved logging messages
+- Enhanced error handling
 
-### Fixed
-- Backward compatibility with old database format
-- IP detection fallback mechanisms improved
+### New Environment Variables
+- `MONITOR_IPV4` - Enable/disable IPv4 monitoring (default: true)
+- `MONITOR_IPV6` - Enable/disable IPv6 monitoring (default: true)
 
 ---
 
 ## [1.0.0] - 2025-10-24
 
 ### Added
-- Initial release of WANwatcher
-- **IPv4 Monitoring** - Automatic WAN IPv4 address detection
-- **Discord Notifications** - Rich embed notifications via Discord webhooks
-- **Geographic Data** - Optional ipinfo.io integration
-  - City, region, country detection
-  - ISP information
-  - Timezone information
-- **Docker Support** - Optimized for containerized environments
-  - Continuous loop monitoring mode
-  - Persistent database storage
-  - Log file persistence
-  - Health checks
-- **Configuration via Environment Variables**:
-  - `DISCORD_WEBHOOK_URL` - Discord webhook
-  - `IPINFO_TOKEN` - ipinfo.io API token
-  - `SERVER_NAME` - Server identification
-  - `BOT_NAME` - Bot display name
-  - `CHECK_INTERVAL` - Monitoring frequency
-- **IP Detection Services** - Multiple fallback services
-  - api.ipify.org
-  - ipapi.co
-  - ifconfig.me
-  - api.myip.com
-- **Error Handling** - Automatic recovery and error notifications
-- **Resource Efficiency** - Minimal memory and CPU usage
-- **Multi-Architecture** - AMD64 and ARM64 support
+- Initial release
+- Docker containerized WAN IP monitoring
+- Discord webhook notifications
+- Automatic IP change detection
+- Geographic data integration via ipinfo.io
+- Configurable check intervals
+- Persistent IP storage
+- Health checks
+- Comprehensive logging
+- Multi-stage Docker build
+- Docker Compose support
 
-### Security
-- No exposed ports required
-- Secure handling of webhook URLs
-- Isolated container environment
+### Features
+- IPv4 monitoring
+- Discord embed notifications
+- Database persistence
+- Error recovery
+- Fallback IP services
+- Resource limits
+- Log rotation
+- Timezone aware timestamps
 
 ---
 
 ## Release Notes
 
-### v1.2.0 Highlights
+### v1.3.0 - Email & Avatar Support
+The third major release adds comprehensive email notification support with beautiful HTML templates, making WANwatcher a complete multi-platform notification system. Custom Discord avatars allow for better branding and identification.
 
-This release brings **Telegram support** to WANwatcher! You can now receive notifications on Telegram in addition to (or instead of) Discord. The notification system has been refactored with a provider architecture, making it easy to add more platforms in the future.
+**Key Highlights:**
+- 📧 Professional HTML emails
+- 🎨 Custom Discord avatars
+- 📱 Three notification platforms
+- 🔐 Secure SMTP (TLS/SSL)
+- 📨 Multiple recipients
+- ✅ Backward compatible
 
-**Key Features:**
-- 📱 Telegram bot notifications with beautiful HTML formatting
-- 🔔 Use Discord, Telegram, or both platforms simultaneously
-- 🎨 Improved Discord notification layout
-- 📦 Version tracking in all notifications
+### v1.2.0 - Telegram Integration
+The second major release adds Telegram bot support, creating a flexible multi-platform notification system. Users can now choose Discord, Telegram, or both platforms simultaneously.
 
-**Upgrade Notes:**
-- Existing Discord-only users: No changes needed, everything works as before
-- To add Telegram: Set `TELEGRAM_ENABLED="true"` and configure bot token/chat ID
-- New `notifications.py` module is automatically included in the Docker image
+**Key Highlights:**
+- 💬 Telegram bot notifications
+- 🔀 Multi-platform architecture
+- 📦 Version tracking
+- 🎨 Improved Discord layout
+- 🔒 Enhanced security
 
-**Breaking Changes:** None - fully backward compatible with v1.1.0
+### v1.1.0 - IPv6 Support
+First feature update adding IPv6 monitoring capabilities, doubling the monitoring coverage for modern networks.
+
+**Key Highlights:**
+- 🌐 IPv6 monitoring
+- ⚙️ Configurable protocols
+- 📊 Dual-stack support
+
+### v1.0.0 - Initial Release
+First stable release of WANwatcher, providing reliable WAN IP monitoring with Discord notifications in a Docker container.
+
+**Key Highlights:**
+- 🐳 Docker ready
+- 📢 Discord notifications
+- 🌍 Geographic data
+- 🔄 Auto-recovery
+- 📝 Comprehensive logs
 
 ---
 
-## Future Roadmap
+## Upgrade Paths
 
-### v1.3.0 (Planned)
-- Slack notification support
-- Email notification support
-- More notification providers
+### From v1.2.0 to v1.3.0
+- ✅ Fully backward compatible
+- Add Email environment variables (optional)
+- Add Discord avatar URL (optional)
+- Pull new image and restart
+- See [UPGRADING.md](UPGRADING.md) for details
 
-### v2.0.0 (Planned)
-- Web dashboard
-- Historical IP tracking
-- Multiple server monitoring
-- Alerting rules and filters
-- API endpoints
+### From v1.1.0 to v1.3.0
+- ✅ Fully backward compatible
+- Telegram support available (optional)
+- Email support available (optional)
+- Pull new image and restart
+- Consider removing IP database for initial notification
 
----
-
-## Versioning
-
-WANwatcher follows [Semantic Versioning](https://semver.org/):
-
-- **MAJOR** version (X.0.0): Incompatible API changes
-- **MINOR** version (0.X.0): New features, backward compatible
-- **PATCH** version (0.0.X): Bug fixes, backward compatible
+### From v1.0.0 to v1.3.0
+- ✅ Fully backward compatible
+- Add IPv4/IPv6 monitoring variables
+- Add Telegram support (optional)
+- Add Email support (optional)
+- Pull new image and restart
 
 ---
 
 ## Links
 
-- [GitHub Repository](https://github.com/noxied/wanwatcher)
-- [Docker Hub](https://hub.docker.com/r/noxied/wanwatcher)
-- [Issue Tracker](https://github.com/noxied/wanwatcher/issues)
-- [Releases](https://github.com/noxied/wanwatcher/releases)
+- **GitHub Repository**: https://github.com/noxied/wanwatcher
+- **Docker Hub**: https://hub.docker.com/r/noxied/wanwatcher
+- **Documentation**: See [README.md](README.md)
+- **Security**: See [SECURITY.md](SECURITY.md)
+- **Upgrading**: See [UPGRADING.md](UPGRADING.md)
+
+---
+
+[1.3.0]: https://github.com/noxied/wanwatcher/releases/tag/v1.3.0
+[1.2.0]: https://github.com/noxied/wanwatcher/releases/tag/v1.2.0
+[1.1.0]: https://github.com/noxied/wanwatcher/releases/tag/v1.1.0
+[1.0.0]: https://github.com/noxied/wanwatcher/releases/tag/v1.0.0

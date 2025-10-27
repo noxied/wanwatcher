@@ -3,11 +3,12 @@
 WANwatcher Docker - WAN IP Address Monitor with Multi-Platform Notifications
 Docker-optimized version with continuous loop mode
 
-Version: 1.2.0
+Version: 1.3.0
 
 Features:
 - Automatic IP change detection
-- Multi-platform notifications (Discord, Telegram)
+- Multi-platform notifications (Discord, Telegram, Email)
+- Custom Discord webhook avatars
 - Detailed logging
 - Error handling and recovery
 - Supports multiple IP detection services as fallback
@@ -23,10 +24,10 @@ import sys
 import logging
 import time
 from datetime import datetime
-from notifications import NotificationManager, DiscordNotifier, TelegramNotifier
+from notifications import NotificationManager, DiscordNotifier, TelegramNotifier, EmailNotifier
 
 # Version
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 
 # ============================================================================
 # CONFIGURATION - Loaded from Environment Variables
@@ -34,12 +35,25 @@ VERSION = "1.2.0"
 
 # Discord Configuration
 DISCORD_WEBHOOK_URL = os.environ.get('DISCORD_WEBHOOK_URL', '')
+DISCORD_AVATAR_URL = os.environ.get('DISCORD_AVATAR_URL', '')
 
 # Telegram Configuration
 TELEGRAM_ENABLED = os.environ.get('TELEGRAM_ENABLED', 'false').lower() == 'true'
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
 TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '')
 TELEGRAM_PARSE_MODE = os.environ.get('TELEGRAM_PARSE_MODE', 'HTML')
+
+# Email Configuration
+EMAIL_ENABLED = os.environ.get('EMAIL_ENABLED', 'false').lower() == 'true'
+EMAIL_SMTP_HOST = os.environ.get('EMAIL_SMTP_HOST', '')
+EMAIL_SMTP_PORT = os.environ.get('EMAIL_SMTP_PORT', '587')
+EMAIL_SMTP_USER = os.environ.get('EMAIL_SMTP_USER', '')
+EMAIL_SMTP_PASSWORD = os.environ.get('EMAIL_SMTP_PASSWORD', '')
+EMAIL_FROM = os.environ.get('EMAIL_FROM', '')
+EMAIL_TO = os.environ.get('EMAIL_TO', '')
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() == 'true'
+EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'false').lower() == 'true'
+EMAIL_SUBJECT_PREFIX = os.environ.get('EMAIL_SUBJECT_PREFIX', '[WANwatcher]')
 
 # General Configuration
 IPINFO_TOKEN = os.environ.get('IPINFO_TOKEN', '')
@@ -52,6 +66,13 @@ CHECK_INTERVAL = int(os.environ.get('CHECK_INTERVAL', '900'))  # Default: 15 min
 # IPv6 Configuration
 MONITOR_IPV4 = os.environ.get('MONITOR_IPV4', 'true').lower() == 'true'
 MONITOR_IPV6 = os.environ.get('MONITOR_IPV6', 'true').lower() == 'true'
+
+# Update Check Configuration
+UPDATE_CHECK_ENABLED = os.environ.get('UPDATE_CHECK_ENABLED', 'true').lower() == 'true'
+UPDATE_CHECK_INTERVAL = int(os.environ.get('UPDATE_CHECK_INTERVAL', '86400'))  # 24 hours
+UPDATE_CHECK_ON_STARTUP = os.environ.get('UPDATE_CHECK_ON_STARTUP', 'true').lower() == 'true'
+GITHUB_API_URL = "https://api.github.com/repos/noxied/wanwatcher/releases/latest"
+UPDATE_NOTIFIED_FILE = "/data/update_notified.txt"
 
 # ============================================================================
 # Setup Logging
@@ -271,7 +292,7 @@ def initialize_notifications():
     
     # Add Discord if configured
     if DISCORD_WEBHOOK_URL:
-        discord = DiscordNotifier(DISCORD_WEBHOOK_URL, BOT_NAME)
+        discord = DiscordNotifier(DISCORD_WEBHOOK_URL, BOT_NAME, DISCORD_AVATAR_URL)
         notification_manager.add_provider(discord)
         logging.info("Discord notifications enabled")
     
@@ -280,12 +301,114 @@ def initialize_notifications():
         telegram = TelegramNotifier(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TELEGRAM_PARSE_MODE)
         notification_manager.add_provider(telegram)
         logging.info("Telegram notifications enabled")
-        
-        # Send test message on startup (optional - commented out)
-        # telegram.send_test_message()
+    
+    # Add Email if configured
+    if EMAIL_ENABLED and EMAIL_SMTP_HOST and EMAIL_SMTP_USER and EMAIL_SMTP_PASSWORD and EMAIL_FROM and EMAIL_TO:
+        email = EmailNotifier(
+            smtp_host=EMAIL_SMTP_HOST,
+            smtp_port=EMAIL_SMTP_PORT,
+            smtp_user=EMAIL_SMTP_USER,
+            smtp_password=EMAIL_SMTP_PASSWORD,
+            from_addr=EMAIL_FROM,
+            to_addrs=EMAIL_TO,
+            use_tls=EMAIL_USE_TLS,
+            use_ssl=EMAIL_USE_SSL,
+            subject_prefix=EMAIL_SUBJECT_PREFIX
+        )
+        notification_manager.add_provider(email)
+        logging.info(f"Email notifications enabled (to: {EMAIL_TO})")
     
     if not notification_manager.providers:
         logging.warning("No notification providers configured!")
+
+# ============================================================================
+# Update Check Functions
+# ============================================================================
+
+def parse_version(version_str):
+    """Parse version string to comparable tuple"""
+    try:
+        # Remove 'v' prefix and split by '.'
+        parts = version_str.lstrip('v').split('.')
+        return tuple(map(int, parts[:3]))  # Take only first 3 parts (major.minor.patch)
+    except:
+        return (0, 0, 0)
+
+def check_for_updates():
+    """Check GitHub for newer version"""
+    if not UPDATE_CHECK_ENABLED:
+        return None
+    
+    try:
+        logging.info("Checking for updates...")
+        
+        # Call GitHub API
+        response = requests.get(GITHUB_API_URL, timeout=10)
+        response.raise_for_status()
+        release_data = response.json()
+        
+        latest_version = release_data.get('tag_name', '').lstrip('v')
+        current_version = VERSION.lstrip('v')
+        
+        # Compare versions
+        if parse_version(latest_version) > parse_version(current_version):
+            logging.info(f"New version available: v{latest_version} (current: v{current_version})")
+            
+            # Check if we already notified about this version
+            if os.path.exists(UPDATE_NOTIFIED_FILE):
+                with open(UPDATE_NOTIFIED_FILE, 'r') as f:
+                    notified_version = f.read().strip()
+                    if notified_version == latest_version:
+                        logging.info("Already notified about this version")
+                        return None
+            
+            # Return update info
+            return {
+                'current_version': current_version,
+                'latest_version': latest_version,
+                'release_name': release_data.get('name', ''),
+                'release_url': release_data.get('html_url', ''),
+                'release_body': release_data.get('body', ''),
+                'published_at': release_data.get('published_at', '')
+            }
+        else:
+            logging.info("WANwatcher is up to date")
+            return None
+            
+    except Exception as e:
+        logging.warning(f"Failed to check for updates: {e}")
+        return None
+
+def mark_update_notified(version):
+    """Mark that we notified about this version"""
+    try:
+        with open(UPDATE_NOTIFIED_FILE, 'w') as f:
+            f.write(version)
+        logging.debug(f"Marked update v{version} as notified")
+    except Exception as e:
+        logging.error(f"Failed to save update notification state: {e}")
+
+def send_update_notification(update_info):
+    """Send update notification to all platforms"""
+    try:
+        logging.info(f"Sending update notification for v{update_info['latest_version']}")
+        
+        # Notify via all configured platforms
+        results = notification_manager.notify_update(update_info, SERVER_NAME)
+        
+        # Log results
+        for provider, success in results.items():
+            if success:
+                logging.info(f"{provider} update notification sent successfully")
+            else:
+                logging.warning(f"{provider} update notification failed")
+        
+        # Mark as notified if at least one succeeded
+        if any(results.values()):
+            mark_update_notified(update_info['latest_version'])
+        
+    except Exception as e:
+        logging.error(f"Failed to send update notification: {e}")
 
 # ============================================================================
 # Main Check Function
@@ -368,19 +491,27 @@ def main():
     logging.info("Notification Status:")
     logging.info(f"  Discord: {'Configured' if DISCORD_WEBHOOK_URL else 'Not configured'}")
     logging.info(f"  Telegram: {'Enabled' if TELEGRAM_ENABLED and TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID else 'Not configured'}")
+    logging.info(f"  Email: {'Enabled' if EMAIL_ENABLED and EMAIL_SMTP_HOST and EMAIL_FROM and EMAIL_TO else 'Not configured'}")
     logging.info(f"  ipinfo.io: {'Configured' if IPINFO_TOKEN else 'Not configured (geo data disabled)'}")
+    logging.info(f"  Update Check: {'Enabled' if UPDATE_CHECK_ENABLED else 'Disabled'}")
     logging.info("=" * 60)
     
     # Validation
     if not notification_manager.providers:
         logging.error("FATAL: No notification providers configured!")
-        logging.error("Please configure at least Discord or Telegram")
+        logging.error("Please configure at least one notification method (Discord, Telegram, or Email)")
         sys.exit(1)
     
     if not MONITOR_IPV4 and not MONITOR_IPV6:
         logging.error("FATAL: Both IPv4 and IPv6 monitoring are disabled!")
         logging.error("Please enable at least one protocol")
         sys.exit(1)
+    
+    # Check for updates on startup
+    if UPDATE_CHECK_ON_STARTUP:
+        update_info = check_for_updates()
+        if update_info:
+            send_update_notification(update_info)
     
     # Initial check
     logging.info("Performing initial IP check...")
@@ -390,12 +521,25 @@ def main():
     logging.info(f"Starting continuous monitoring (checking every {CHECK_INTERVAL} seconds)...")
     
     check_count = 0
+    last_update_check = datetime.now()
+    
     while True:
         try:
             time.sleep(CHECK_INTERVAL)
             check_count += 1
             logging.info(f"Performing check #{check_count}...")
             check_ip()
+            
+            # Periodic update check
+            if UPDATE_CHECK_ENABLED:
+                from datetime import timedelta
+                time_since_check = (datetime.now() - last_update_check).total_seconds()
+                if time_since_check >= UPDATE_CHECK_INTERVAL:
+                    logging.debug(f"Periodic update check (interval: {UPDATE_CHECK_INTERVAL}s)")
+                    update_info = check_for_updates()
+                    if update_info:
+                        send_update_notification(update_info)
+                    last_update_check = datetime.now()
             
         except KeyboardInterrupt:
             logging.info("Received shutdown signal, stopping WANwatcher...")

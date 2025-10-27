@@ -1,10 +1,24 @@
-# WANwatcher 🌐
+<div align="center">
 
-Monitor your WAN IPv4 and IPv6 addresses with real-time notifications to Discord and Telegram when they change.
+![WANwatcher Banner](wanwatcher-banner.png)
 
-[![Docker Image](https://img.shields.io/badge/docker-noxied%2Fwanwatcher-blue)](https://hub.docker.com/r/noxied/wanwatcher)
-[![Version](https://img.shields.io/badge/version-1.2.0-green)](https://github.com/noxied/wanwatcher/releases/tag/v1.2.0)
-[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+# WANwatcher
+
+**🌐 Professional WAN IP monitoring with multi-platform notifications**
+
+[![Docker Hub](https://img.shields.io/docker/v/noxied/wanwatcher?label=Docker%20Hub&logo=docker)](https://hub.docker.com/r/noxied/wanwatcher)
+[![Docker Pulls](https://img.shields.io/docker/pulls/noxied/wanwatcher?logo=docker)](https://hub.docker.com/r/noxied/wanwatcher)
+[![GitHub release](https://img.shields.io/github/v/release/noxied/wanwatcher?logo=github)](https://github.com/noxied/wanwatcher/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/noxied/wanwatcher?style=social)](https://github.com/noxied/wanwatcher)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+Monitor your WAN IPv4 and IPv6 addresses and receive instant notifications via **Discord**, **Telegram**, and **Email** when they change.
+
+Perfect for homelabs, remote access, dynamic DNS monitoring, and more! 🏠
+
+[Features](#features) • [Quick Start](#quick-start) • [Configuration](#configuration) • [Email Setup](#email-setup) • [Telegram Setup](#telegram-setup) • [Documentation](#documentation) • [Upgrading](UPGRADING.md)
+
+</div>
 
 ## ✨ Features
 
@@ -92,6 +106,10 @@ For Telegram, add:
   -e TELEGRAM_BOT_TOKEN="your_telegram_bot_token" \
   -e TELEGRAM_CHAT_ID="your_telegram_chat_id" \
 ```
+
+## Upgrading
+   
+See [UPGRADING.md](UPGRADING.md) for instructions on upgrading from previous versions.
 
 ## ⚙️ Configuration
 

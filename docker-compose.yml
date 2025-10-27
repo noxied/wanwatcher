@@ -2,59 +2,72 @@ version: '3.8'
 
 services:
   wanwatcher:
-    image: noxied/wanwatcher:latest
+    image: noxied/wanwatcher:1.3.0
     container_name: wanwatcher
     restart: unless-stopped
     
     environment:
-      # ========================================
+      # ===========================================
       # Discord Configuration
-      # ========================================
-      # Get your webhook from Discord Server Settings > Integrations > Webhooks
-      DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
+      # ===========================================
+      DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/YOUR_WEBHOOK_URL"
+      # Optional: Custom avatar URL for Discord webhook
+      # If not set, uses default embedded avatar (wan_watcher.png)
+      DISCORD_AVATAR_URL: ""
       
-      # ========================================
-      # Telegram Configuration (NEW in v1.2.0)
-      # ========================================
-      # To enable Telegram notifications:
-      # 1. Create bot with @BotFather on Telegram
-      # 2. Get your bot token from @BotFather
-      # 3. Get your chat ID from @userinfobot
-      # 4. Set TELEGRAM_ENABLED to "true"
+      # ===========================================
+      # Telegram Configuration (v1.2.0+)
+      # ===========================================
       TELEGRAM_ENABLED: "false"
-      TELEGRAM_BOT_TOKEN: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-      TELEGRAM_CHAT_ID: "123456789"
-      TELEGRAM_PARSE_MODE: "HTML"  # HTML or Markdown
+      TELEGRAM_BOT_TOKEN: ""           # Get from @BotFather
+      TELEGRAM_CHAT_ID: ""             # Your Telegram chat ID
+      TELEGRAM_PARSE_MODE: "HTML"      # HTML or Markdown
       
-      # ========================================
+      # ===========================================
+      # Email Configuration (v1.3.0+)
+      # ===========================================
+      EMAIL_ENABLED: "false"
+      EMAIL_SMTP_HOST: "smtp.gmail.com"
+      EMAIL_SMTP_PORT: "587"           # 587 for TLS, 465 for SSL
+      EMAIL_SMTP_USER: ""              # SMTP username (usually your email)
+      EMAIL_SMTP_PASSWORD: ""          # SMTP password or app password
+      EMAIL_FROM: ""                   # From email address
+      EMAIL_TO: ""                     # To email address (comma-separated for multiple)
+      EMAIL_USE_TLS: "true"            # Use TLS (recommended)
+      EMAIL_USE_SSL: "false"           # Use SSL (alternative to TLS)
+      EMAIL_SUBJECT_PREFIX: "[WANwatcher]"
+      
+      # ===========================================
+      # Update Check Configuration (v1.3.0+)
+      # ===========================================
+      UPDATE_CHECK_ENABLED: "true"     # Enable update notifications
+      UPDATE_CHECK_INTERVAL: "86400"   # Check every 24 hours (in seconds)
+      UPDATE_CHECK_ON_STARTUP: "true"  # Check for updates on container startup
+      
+      # ===========================================
       # Server Configuration
-      # ========================================
+      # ===========================================
       SERVER_NAME: "My Server"
-      BOT_NAME: "WAN IP Watcher"
-      CHECK_INTERVAL: "900"  # 15 minutes (in seconds)
+      BOT_NAME: "WANwatcher"
+      CHECK_INTERVAL: "900"            # Check every 900 seconds (15 minutes)
       
-      # ========================================
+      # ===========================================
       # Geographic Data (Optional)
-      # ========================================
-      # Get free token from https://ipinfo.io/signup
-      IPINFO_TOKEN: ""
+      # ===========================================
+      IPINFO_TOKEN: ""                 # Get free token from ipinfo.io
       
-      # ========================================
-      # IPv4 & IPv6 Monitoring
-      # ========================================
+      # ===========================================
+      # IP Monitoring
+      # ===========================================
       MONITOR_IPV4: "true"
       MONITOR_IPV6: "true"
     
     volumes:
-      # Persist IP database across container restarts
+      # Persistent data storage
       - ./data:/data
-      
-      # Persist logs across container restarts
       - ./logs:/logs
     
-    # ========================================
-    # Health Check
-    # ========================================
+    # Health check
     healthcheck:
       test: ["CMD", "python3", "-c", "import os; exit(0 if os.path.exists('/data/ipinfo.db') else 1)"]
       interval: 5m
@@ -62,9 +75,7 @@ services:
       retries: 3
       start_period: 30s
     
-    # ========================================
-    # Resource Limits (Optional)
-    # ========================================
+    # Resource limits (adjust as needed)
     deploy:
       resources:
         limits:
@@ -74,27 +85,17 @@ services:
           cpus: '0.1'
           memory: 32M
     
-    # ========================================
-    # Logging Configuration
-    # ========================================
+    # Logging configuration
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-# ============================================
-# Configuration Notes
-# ============================================
-
-# Notification Options:
-# 1. Discord only: Configure DISCORD_WEBHOOK_URL, leave TELEGRAM_ENABLED="false"
-# 2. Telegram only: Set TELEGRAM_ENABLED="true" + configure token/chat_id, remove Discord URL
-# 3. Both platforms: Configure both (recommended for redundancy)
-
-# At least one notification platform must be configured!
-
-# Security Note:
-# - NEVER commit your actual tokens/webhooks to version control
-# - Use environment variables or docker secrets for production
-# - Create a separate docker-compose.override.yml with your actual values (add to .gitignore)
+# ===========================================
+# Network Configuration (Optional)
+# ===========================================
+# Uncomment to use custom network
+# networks:
+#   monitoring:
+#     driver: bridge
