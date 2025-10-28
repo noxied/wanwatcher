@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.3.0] - 2025-XX-XX
+## [1.3.0] - 2025-10-27
 
 ### Added
 - **Email Notifications** 📧 - Send alerts via SMTP (Gmail, Outlook, custom SMTP)
