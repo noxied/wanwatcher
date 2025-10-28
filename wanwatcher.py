@@ -1,487 +1,280 @@
 #!/usr/bin/env python3
 """
-WANwatcher - WAN IP Address Monitor with Discord Notifications
-Monitors your WAN IP address and sends notifications to Discord when it changes.
-
-Features:
-- Automatic IP change detection (IPv4 and IPv6)
-- Discord webhook notifications with rich embeds
-- Detailed logging
-- Error handling and recovery
-- Supports multiple IP detection services as fallback
-- Optional ipinfo.io integration for geographic data
-- Dual-stack network support
+WANwatcher - WAN IP Monitor with Multi-Platform Notifications
+Monitors WAN IP changes and sends notifications via Email, Telegram, and Discord
 """
 
-import requests
-import json
 import os
-import sys
+import time
+import requests
+import smtplib
 import logging
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime
-from pathlib import Path
 
-# ============================================================================
-# CONFIGURATION - Edit these values
-# ============================================================================
+# Version
+VERSION = "1.3.0"
 
-# Discord Webhook URL (Required)
-DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
+# Configuration from environment variables
+SERVER_NAME = os.getenv('SERVER_NAME', 'Server')
+CHECK_INTERVAL = int(os.getenv('CHECK_INTERVAL', '900'))  # 15 minutes default
 
-# ipinfo.io API Token (Optional - for geographic information)
-# Get free token at: https://ipinfo.io/signup
-IPINFO_TOKEN = ""  # Leave empty if you don't want geo data
+# Email configuration
+ENABLE_EMAIL = os.getenv('ENABLE_EMAIL', 'false').lower() == 'true'
+SMTP_SERVER = os.getenv('SMTP_SERVER', '')
+SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
+SMTP_USERNAME = os.getenv('SMTP_USERNAME', '')
+SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
+EMAIL_FROM = os.getenv('EMAIL_FROM', '')
+EMAIL_TO = os.getenv('EMAIL_TO', '')
 
-# File to store the last known IP
-IP_DB_FILE = "/var/lib/wanwatcher/ipinfo.db"
+# Telegram configuration
+ENABLE_TELEGRAM = os.getenv('ENABLE_TELEGRAM', 'false').lower() == 'true'
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID', '')
 
-# Log file location
-LOG_FILE = "/var/log/wanwatcher.log"
+# Discord configuration
+ENABLE_DISCORD = os.getenv('ENABLE_DISCORD', 'false').lower() == 'true'
+DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL', '')
 
-# Discord bot name
-BOT_NAME = "WANwatcher"
+# State file
+STATE_FILE = '/data/last_ip.txt'
 
-# Server/Location name (will appear in Discord message)
-SERVER_NAME = "HPE DL380 G9 Lab"
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
-# IPv6 Configuration
-MONITOR_IPV4 = True
-MONITOR_IPV6 = True
-
-# ============================================================================
-# Setup Logging
-# ============================================================================
-
-def setup_logging():
-    """Configure logging to file and console"""
-    log_dir = os.path.dirname(LOG_FILE)
-    if log_dir and not os.path.exists(log_dir):
-        os.makedirs(log_dir, exist_ok=True)
-    
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(LOG_FILE),
-            logging.StreamHandler(sys.stdout)
-        ]
-    )
-
-# ============================================================================
-# IP Detection Functions
-# ============================================================================
-
-def get_ipv4_simple():
-    """Get IPv4 address using simple services (no API key needed)"""
+def get_wan_ip():
+    """Fetch current WAN IP address"""
     services = [
-        "https://api.ipify.org?format=json",
-        "https://ipapi.co/json",
-        "https://ifconfig.me/all.json",
-        "https://api.myip.com"
+        'https://api.ipify.org',
+        'https://ifconfig.me/ip',
+        'https://icanhazip.com'
     ]
     
     for service in services:
         try:
-            logging.info(f"Trying IPv4 service: {service}")
             response = requests.get(service, timeout=10)
-            response.raise_for_status()
-            data = response.json()
-            
-            # Different services use different keys
-            ip = data.get('ip') or data.get('IPv4') or data.get('query')
-            
-            if ip and '.' in ip:  # Simple IPv4 validation
-                logging.info(f"Successfully retrieved IPv4: {ip}")
-                return ip, None
+            if response.status_code == 200:
+                return response.text.strip()
         except Exception as e:
-            logging.warning(f"Failed to get IPv4 from {service}: {e}")
+            logging.warning(f"Failed to get IP from {service}: {e}")
             continue
     
-    logging.warning("Failed to retrieve IPv4 from all services")
-    return None, None
+    raise Exception("Could not retrieve WAN IP from any service")
 
-def get_ipv6():
-    """Get IPv6 address from multiple services"""
-    services = [
-        'https://api64.ipify.org?format=json',  # IPv6-specific service
-        'https://api6.ipify.org?format=json',   # Another IPv6 service
-    ]
-    
-    for service in services:
-        try:
-            logging.debug(f"Trying IPv6 service: {service}")
-            response = requests.get(service, timeout=10)
-            response.raise_for_status()
-            
-            # Handle JSON response
-            data = response.json()
-            ipv6 = data.get('ip', '')
-            
-            # Validate it's actually IPv6 (contains colons)
-            if ipv6 and ':' in ipv6:
-                logging.debug(f"Successfully retrieved IPv6: {ipv6}")
-                return ipv6
-            else:
-                logging.debug(f"Response was not IPv6: {ipv6}")
-                
-        except requests.exceptions.RequestException as e:
-            logging.warning(f"Failed to get IPv6 from {service}: {e}")
-            continue
-        except Exception as e:
-            logging.error(f"Unexpected error getting IPv6 from {service}: {e}")
-            continue
-    
-    logging.warning("Failed to retrieve IPv6 from all services")
+def read_last_ip():
+    """Read the last known IP from state file"""
+    try:
+        if os.path.exists(STATE_FILE):
+            with open(STATE_FILE, 'r') as f:
+                return f.read().strip()
+    except Exception as e:
+        logging.error(f"Error reading state file: {e}")
     return None
 
-def get_ip_with_info():
-    """Get IPv4 with geographic information using ipinfo.io"""
-    if not IPINFO_TOKEN:
-        return get_ipv4_simple()
+def write_last_ip(ip):
+    """Write the current IP to state file"""
+    try:
+        os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
+        with open(STATE_FILE, 'w') as f:
+            f.write(ip)
+    except Exception as e:
+        logging.error(f"Error writing state file: {e}")
+
+def send_email(subject, body):
+    """Send email notification"""
+    if not ENABLE_EMAIL:
+        return
     
     try:
-        import ipinfo
-        handler = ipinfo.getHandler(IPINFO_TOKEN)
-        details = handler.getDetails()
+        msg = MIMEMultipart()
+        msg['From'] = EMAIL_FROM
+        msg['To'] = EMAIL_TO
+        msg['Subject'] = subject
         
-        geo_data = {
-            'city': details.city,
-            'region': details.region,
-            'country': details.country_name,
-            'org': details.org,
-            'timezone': details.timezone
+        msg.attach(MIMEText(body, 'plain'))
+        
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SMTP_USERNAME, SMTP_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+        
+        logging.info(f"Email notification sent successfully to {EMAIL_TO}")
+    except Exception as e:
+        logging.error(f"Email notification failed: {e}")
+
+def send_telegram(message):
+    """Send Telegram notification"""
+    if not ENABLE_TELEGRAM:
+        return
+    
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        payload = {
+            'chat_id': TELEGRAM_CHAT_ID,
+            'text': message,
+            'parse_mode': 'HTML'
         }
         
-        logging.info(f"Retrieved IP with geo data: {details.ip}")
-        return details.ip, geo_data
-    except ImportError:
-        logging.warning("ipinfo module not installed, falling back to simple detection")
-        return get_ipv4_simple()
-    except Exception as e:
-        logging.warning(f"ipinfo.io failed: {e}, falling back to simple detection")
-        return get_ipv4_simple()
-
-def get_current_ips():
-    """
-    Get both IPv4 and IPv6 addresses based on configuration.
-    Returns dict: {'ipv4': '...', 'ipv6': '...'}, geo_data
-    """
-    logging.info("Detecting IP addresses...")
-    
-    result = {'ipv4': None, 'ipv6': None}
-    geo_data = None
-    
-    # Get IPv4 if enabled
-    if MONITOR_IPV4:
-        result['ipv4'], geo_data = get_ip_with_info()
-    else:
-        logging.info("IPv4 monitoring disabled")
-    
-    # Get IPv6 if enabled
-    if MONITOR_IPV6:
-        result['ipv6'] = get_ipv6()
-    else:
-        logging.info("IPv6 monitoring disabled")
-    
-    logging.info(f"Detection complete - IPv4: {result['ipv4']}, IPv6: {result['ipv6']}")
-    return result, geo_data
-
-# ============================================================================
-# IP Storage Functions
-# ============================================================================
-
-def ensure_db_dir():
-    """Ensure the database directory exists"""
-    db_dir = os.path.dirname(IP_DB_FILE)
-    if db_dir and not os.path.exists(db_dir):
-        os.makedirs(db_dir, exist_ok=True)
-        logging.info(f"Created database directory: {db_dir}")
-
-def get_previous_ips():
-    """
-    Read previous IP addresses from database.
-    Returns dict: {'ipv4': '...', 'ipv6': '...'}
-    """
-    if not os.path.exists(IP_DB_FILE):
-        logging.info("No previous IP database found (first run)")
-        return {'ipv4': None, 'ipv6': None}
-    
-    try:
-        with open(IP_DB_FILE, 'r') as f:
-            content = f.read().strip()
-            
-        # Try to parse as JSON (new format)
-        try:
-            data = json.loads(content)
-            
-            # Handle old format that was converted to JSON string
-            if isinstance(data, str):
-                logging.info("Converting old database format to new format")
-                return {'ipv4': data, 'ipv6': None}
-            
-            # New format (dict with both IPs)
-            return {
-                'ipv4': data.get('ipv4'),
-                'ipv6': data.get('ipv6')
-            }
-        except json.JSONDecodeError:
-            # Old format - plain text file with just IPv4
-            logging.info("Converting legacy database format to new format")
-            return {'ipv4': content, 'ipv6': None}
-            
-    except Exception as e:
-        logging.error(f"Error reading IP database: {e}")
-        return {'ipv4': None, 'ipv6': None}
-
-def save_current_ips(ipv4, ipv6):
-    """Save current IP addresses to database"""
-    try:
-        ensure_db_dir()
-        
-        data = {
-            'ipv4': ipv4,
-            'ipv6': ipv6,
-            'last_updated': datetime.now().isoformat()
-        }
-        
-        with open(IP_DB_FILE, 'w') as f:
-            json.dump(data, f, indent=2)
-        
-        logging.info(f"Saved IPs to database - IPv4: {ipv4}, IPv6: {ipv6}")
-        
-    except Exception as e:
-        logging.error(f"Error saving IP database: {e}")
-        raise
-
-# ============================================================================
-# Discord Notification Functions
-# ============================================================================
-
-def send_discord_notification(current_ips, previous_ips, geo_data=None, is_first_run=False):
-    """Send rich embed notification to Discord with both IPv4 and IPv6"""
-    
-    # Determine what changed
-    ipv4_changed = current_ips['ipv4'] != previous_ips['ipv4']
-    ipv6_changed = current_ips['ipv6'] != previous_ips['ipv6']
-    
-    # Build title and description based on what changed
-    if is_first_run:
-        title = "🟢 Initial IP Detection"
-        description = f"Monitoring started for **{SERVER_NAME}**"
-        color = 3066993  # Green
-    elif ipv4_changed and ipv6_changed:
-        title = "🔄 Both IP Addresses Changed"
-        description = f"IPv4 and IPv6 for **{SERVER_NAME}** have been updated"
-        color = 15844367  # Gold/Orange
-    elif ipv4_changed:
-        title = "🔄 IPv4 Address Changed"
-        description = f"IPv4 for **{SERVER_NAME}** has been updated"
-        color = 15844367  # Gold/Orange
-    elif ipv6_changed:
-        title = "🔄 IPv6 Address Changed"
-        description = f"IPv6 for **{SERVER_NAME}** has been updated"
-        color = 15844367  # Gold/Orange
-    else:
-        # No changes (shouldn't happen but handle it)
-        title = "✅ IP Status Update"
-        description = f"IP addresses confirmed for **{SERVER_NAME}**"
-        color = 3066993  # Green
-    
-    # Build fields
-    fields = []
-    
-    # IPv4 section
-    if current_ips['ipv4']:
-        fields.append({
-            "name": "📍 Current IPv4",
-            "value": f"`{current_ips['ipv4']}`",
-            "inline": True
-        })
-        if previous_ips['ipv4'] and ipv4_changed and not is_first_run:
-            fields.append({
-                "name": "📌 Previous IPv4",
-                "value": f"`{previous_ips['ipv4']}`",
-                "inline": True
-            })
-    
-    # Add spacer for better layout
-    if current_ips['ipv4'] and current_ips['ipv6']:
-        fields.append({"name": "\u200b", "value": "\u200b", "inline": False})
-    
-    # IPv6 section
-    if current_ips['ipv6']:
-        fields.append({
-            "name": "📍 Current IPv6",
-            "value": f"`{current_ips['ipv6']}`",
-            "inline": False  # IPv6 addresses are long
-        })
-        if previous_ips['ipv6'] and ipv6_changed and not is_first_run:
-            fields.append({
-                "name": "📌 Previous IPv6",
-                "value": f"`{previous_ips['ipv6']}`",
-                "inline": False
-            })
-    elif current_ips['ipv4']:  # Only IPv4 available
-        fields.append({
-            "name": "ℹ️ IPv6 Status",
-            "value": "Not available or not configured",
-            "inline": False
-        })
-    
-    # Add spacer before geo data
-    fields.append({"name": "\u200b", "value": "\u200b", "inline": False})
-    
-    # Add geographic information if available
-    if geo_data:
-        geo_text = f"🌍 {geo_data.get('city', 'Unknown')}, {geo_data.get('region', '')}, {geo_data.get('country', 'Unknown')}\n"
-        geo_text += f"🏢 {geo_data.get('org', 'Unknown ISP')}\n"
-        geo_text += f"🕐 {geo_data.get('timezone', 'Unknown')}"
-        
-        fields.append({
-            "name": "📍 Location Information",
-            "value": geo_text,
-            "inline": False
-        })
-    
-    # Add timestamp
-    fields.append({
-        "name": "⏰ Detected At",
-        "value": f"<t:{int(datetime.utcnow().timestamp())}:F>",
-        "inline": False
-    })
-    
-    # Build embed
-    embed = {
-        "title": f"🌐 {title}",
-        "description": description,
-        "color": color,
-        "fields": fields,
-        "footer": {
-            "text": f"WANwatcher on {SERVER_NAME}"
-        },
-        "timestamp": datetime.utcnow().isoformat()
-    }
-    
-    # Build payload
-    payload = {
-        "username": BOT_NAME,
-        "embeds": [embed]
-    }
-    
-    # Send to Discord
-    try:
-        response = requests.post(
-            DISCORD_WEBHOOK_URL,
-            data=json.dumps(payload),
-            headers={"Content-Type": "application/json"},
-            timeout=10
-        )
+        response = requests.post(url, json=payload, timeout=10)
         response.raise_for_status()
-        logging.info(f"Discord notification sent successfully (Status: {response.status_code})")
-        return True
+        
+        logging.info("Telegram notification sent successfully")
     except Exception as e:
-        logging.error(f"Failed to send Discord notification: {e}")
-        return False
+        logging.error(f"Telegram notification failed: {e}")
 
-def send_error_notification(error_message):
-    """Send error notification to Discord"""
-    payload = {
-        "username": BOT_NAME,
-        "embeds": [{
-            "title": "⚠️ WANwatcher Error",
-            "description": f"An error occurred on {SERVER_NAME}",
-            "color": 15158332,  # Red
+def send_discord(old_ip, new_ip):
+    """Send Discord notification"""
+    if not ENABLE_DISCORD:
+        return
+    
+    try:
+        # Create embed with IP change information
+        embed = {
+            "title": "🌐 WAN IP Address Changed",
+            "description": f"The WAN IP address for **{SERVER_NAME}** has changed.",
+            "color": 3447003,  # Blue color
             "fields": [
                 {
-                    "name": "Error Details",
-                    "value": f"```{error_message}```",
+                    "name": "Previous IP",
+                    "value": f"`{old_ip if old_ip else 'N/A'}`",
+                    "inline": True
+                },
+                {
+                    "name": "New IP",
+                    "value": f"`{new_ip}`",
+                    "inline": True
+                },
+                {
+                    "name": "Server",
+                    "value": SERVER_NAME,
                     "inline": False
                 }
             ],
+            "timestamp": datetime.utcnow().isoformat(),
             "footer": {
-                "text": f"WANwatcher on {SERVER_NAME}"
-            },
-            "timestamp": datetime.utcnow().isoformat()
-        }]
-    }
+                "text": f"WANwatcher v{VERSION}"
+            }
+        }
+        
+        # Payload with embed
+        payload = {
+            "embeds": [embed],
+            "username": "WANwatcher",
+            # Using the wan_watcher.png from the GitHub repository
+            "avatar_url": "https://raw.githubusercontent.com/noxied/wanwatcher/main/wan_watcher.png"
+        }
+        
+        response = requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=10)
+        
+        if response.status_code in [200, 204]:
+            logging.info("Discord notification sent successfully")
+        else:
+            logging.error(f"Discord notification failed (Status: {response.status_code}): {response.text}")
     
-    try:
-        requests.post(
-            DISCORD_WEBHOOK_URL,
-            data=json.dumps(payload),
-            headers={"Content-Type": "application/json"},
-            timeout=10
-        )
-    except:
-        pass  # Don't fail if error notification fails
+    except Exception as e:
+        logging.error(f"Discord notification failed: {e}")
 
-# ============================================================================
-# Main Function
-# ============================================================================
+def send_notifications(old_ip, new_ip):
+    """Send notifications through all enabled channels"""
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
+    # Email
+    if ENABLE_EMAIL:
+        subject = f"WAN IP Changed - {SERVER_NAME}"
+        body = f"""
+WAN IP Address Change Notification
+
+Server: {SERVER_NAME}
+Previous IP: {old_ip if old_ip else 'N/A'}
+New IP: {new_ip}
+Timestamp: {timestamp}
+
+This is an automated notification from WANwatcher.
+"""
+        send_email(subject, body)
+    
+    # Telegram
+    if ENABLE_TELEGRAM:
+        message = f"""
+🌐 <b>WAN IP Changed</b>
+
+<b>Server:</b> {SERVER_NAME}
+<b>Previous IP:</b> <code>{old_ip if old_ip else 'N/A'}</code>
+<b>New IP:</b> <code>{new_ip}</code>
+<b>Time:</b> {timestamp}
+"""
+        send_telegram(message)
+    
+    # Discord
+    if ENABLE_DISCORD:
+        send_discord(old_ip, new_ip)
 
 def main():
-    """Main execution function"""
-    setup_logging()
+    """Main monitoring loop"""
     logging.info("=" * 60)
-    logging.info("WANwatcher started (with IPv6 support)")
-    logging.info(f"IPv4 Monitoring: {MONITOR_IPV4}")
-    logging.info(f"IPv6 Monitoring: {MONITOR_IPV6}")
+    logging.info(f"WANwatcher v{VERSION} Docker started")
+    logging.info(f"Server Name: {SERVER_NAME}")
+    logging.info(f"Check Interval: {CHECK_INTERVAL} seconds ({CHECK_INTERVAL // 60} minutes)")
+    
+    # Log enabled notification methods
+    enabled_methods = []
+    if ENABLE_EMAIL:
+        enabled_methods.append("Email")
+    if ENABLE_TELEGRAM:
+        enabled_methods.append("Telegram")
+    if ENABLE_DISCORD:
+        enabled_methods.append("Discord")
+    
+    if enabled_methods:
+        logging.info(f"Enabled notifications: {', '.join(enabled_methods)}")
+    else:
+        logging.warning("No notification methods enabled!")
+    
     logging.info("=" * 60)
     
-    if not MONITOR_IPV4 and not MONITOR_IPV6:
-        logging.error("FATAL: Both IPv4 and IPv6 monitoring are disabled!")
-        logging.error("Please enable at least one protocol")
-        sys.exit(1)
-    
+    # Initial check
     try:
-        # Get current IPs
-        current_ips, geo_data = get_current_ips()
+        current_ip = get_wan_ip()
+        last_ip = read_last_ip()
         
-        # Verify we got at least one IP
-        if not current_ips['ipv4'] and not current_ips['ipv6']:
-            logging.error("Failed to retrieve any IP address!")
-            raise Exception("No IP addresses detected")
+        logging.info(f"Current WAN IP: {current_ip}")
         
-        logging.info(f"Current IPv4: {current_ips['ipv4']}, IPv6: {current_ips['ipv6']}")
-        
-        # Get previous IPs
-        previous_ips = get_previous_ips()
-        is_first_run = (previous_ips['ipv4'] is None and previous_ips['ipv6'] is None)
-        
-        # Check if anything changed
-        ipv4_changed = current_ips['ipv4'] != previous_ips['ipv4']
-        ipv6_changed = current_ips['ipv6'] != previous_ips['ipv6']
-        
-        if is_first_run:
-            logging.info("First run detected - sending initial notification")
-            send_discord_notification(current_ips, previous_ips, geo_data, is_first_run=True)
-            save_current_ips(current_ips['ipv4'], current_ips['ipv6'])
-            
-        elif ipv4_changed or ipv6_changed:
-            change_msgs = []
-            if ipv4_changed:
-                change_msgs.append(f"IPv4: {previous_ips['ipv4']} → {current_ips['ipv4']}")
-            if ipv6_changed:
-                change_msgs.append(f"IPv6: {previous_ips['ipv6']} → {current_ips['ipv6']}")
-            
-            logging.warning("IP ADDRESS CHANGE DETECTED!")
-            for msg in change_msgs:
-                logging.warning(f"  {msg}")
-            
-            send_discord_notification(current_ips, previous_ips, geo_data, is_first_run=False)
-            save_current_ips(current_ips['ipv4'], current_ips['ipv6'])
-            
+        if last_ip != current_ip:
+            logging.info(f"IP changed from {last_ip} to {current_ip}")
+            send_notifications(last_ip, current_ip)
+            write_last_ip(current_ip)
         else:
-            logging.info("No IP address changes detected")
-        
-        logging.info("WANwatcher completed successfully")
-        return 0
-        
+            logging.info("IP unchanged")
+    
     except Exception as e:
-        error_msg = f"Fatal error: {str(e)}"
-        logging.error(error_msg, exc_info=True)
-        send_error_notification(error_msg)
-        return 1
+        logging.error(f"Error during initial check: {e}")
+    
+    # Continuous monitoring
+    logging.info(f"Starting continuous monitoring (checking every {CHECK_INTERVAL} seconds)...")
+    
+    while True:
+        try:
+            time.sleep(CHECK_INTERVAL)
+            
+            current_ip = get_wan_ip()
+            last_ip = read_last_ip()
+            
+            if last_ip != current_ip:
+                logging.info(f"IP changed from {last_ip} to {current_ip}")
+                send_notifications(last_ip, current_ip)
+                write_last_ip(current_ip)
+            else:
+                logging.info(f"IP check: {current_ip} (unchanged)")
+        
+        except Exception as e:
+            logging.error(f"Error during monitoring: {e}")
+            time.sleep(60)  # Wait a minute before retrying
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
