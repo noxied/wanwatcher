@@ -3,10 +3,10 @@ FROM python:3.11-slim
 # Set metadata
 LABEL maintainer="noxied"
 LABEL description="WAN IP Monitoring with Multi-Platform Notifications (Discord, Telegram, Email) - IPv4 & IPv6 Support"
-LABEL version="1.3.0"
+LABEL version="1.3.1"
 LABEL org.opencontainers.image.title="WANwatcher"
 LABEL org.opencontainers.image.description="Monitor WAN IPv4/IPv6 addresses with Discord, Telegram, and Email notifications"
-LABEL org.opencontainers.image.version="1.3.0"
+LABEL org.opencontainers.image.version="1.3.1"
 LABEL org.opencontainers.image.authors="noxied"
 LABEL org.opencontainers.image.url="https://github.com/noxied/wanwatcher"
 LABEL org.opencontainers.image.source="https://github.com/noxied/wanwatcher"
@@ -30,7 +30,8 @@ COPY wan_watcher.png /app/avatar.png
 RUN mkdir -p /data /logs
 
 # Set environment variables with defaults
-ENV DISCORD_WEBHOOK_URL="" \
+ENV DISCORD_ENABLED="false" \
+    DISCORD_WEBHOOK_URL="" \
     DISCORD_AVATAR_URL="" \
     TELEGRAM_ENABLED="false" \
     TELEGRAM_BOT_TOKEN="" \

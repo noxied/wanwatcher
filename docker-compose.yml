@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   wanwatcher:
-    image: noxied/wanwatcher:1.3.0
+    image: noxied/wanwatcher:1.3.1
     container_name: wanwatcher
     restart: unless-stopped
     
@@ -10,6 +10,7 @@ services:
       # ===========================================
       # Discord Configuration
       # ===========================================
+      DISCORD_ENABLED: "false"         # Set to "true" to enable Discord notifications
       DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/YOUR_WEBHOOK_URL"
       # Optional: Custom avatar URL for Discord webhook
       # If not set, uses default embedded avatar (wan_watcher.png)

@@ -32,7 +32,9 @@ EMAIL_TO = os.getenv('EMAIL_TO', '')
 # Telegram configuration
 ENABLE_TELEGRAM = os.getenv('ENABLE_TELEGRAM', 'false').lower() == 'true'
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')
-TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID', '')
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID', ''
+
+)
 
 # Discord configuration
 ENABLE_DISCORD = os.getenv('ENABLE_DISCORD', 'false').lower() == 'true'
@@ -90,6 +92,11 @@ def send_email(subject, body):
     if not ENABLE_EMAIL:
         return
     
+    # Check if all required email settings are configured
+    if not all([SMTP_SERVER, SMTP_USERNAME, SMTP_PASSWORD, EMAIL_FROM, EMAIL_TO]):
+        logging.error("Email enabled but missing required configuration (SMTP_SERVER, SMTP_USERNAME, SMTP_PASSWORD, EMAIL_FROM, or EMAIL_TO)")
+        return
+    
     try:
         msg = MIMEMultipart()
         msg['From'] = EMAIL_FROM
@@ -113,6 +120,11 @@ def send_telegram(message):
     if not ENABLE_TELEGRAM:
         return
     
+    # Check if all required telegram settings are configured
+    if not all([TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID]):
+        logging.error("Telegram enabled but missing required configuration (TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID)")
+        return
+    
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         payload = {
@@ -131,6 +143,11 @@ def send_telegram(message):
 def send_discord(old_ip, new_ip):
     """Send Discord notification"""
     if not ENABLE_DISCORD:
+        return
+    
+    # Check if webhook URL is configured
+    if not DISCORD_WEBHOOK_URL:
+        logging.error("Discord enabled but missing DISCORD_WEBHOOK_URL")
         return
     
     try:
@@ -222,14 +239,26 @@ def main():
     logging.info(f"Server Name: {SERVER_NAME}")
     logging.info(f"Check Interval: {CHECK_INTERVAL} seconds ({CHECK_INTERVAL // 60} minutes)")
     
-    # Log enabled notification methods
+    # Log enabled notification methods with proper configuration checks
     enabled_methods = []
-    if ENABLE_EMAIL:
+    
+    # Check Email configuration
+    if ENABLE_EMAIL and all([SMTP_SERVER, SMTP_USERNAME, SMTP_PASSWORD, EMAIL_FROM, EMAIL_TO]):
         enabled_methods.append("Email")
-    if ENABLE_TELEGRAM:
+    elif ENABLE_EMAIL:
+        logging.warning("Email is enabled but not fully configured (missing SMTP settings)")
+    
+    # Check Telegram configuration  
+    if ENABLE_TELEGRAM and all([TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID]):
         enabled_methods.append("Telegram")
-    if ENABLE_DISCORD:
+    elif ENABLE_TELEGRAM:
+        logging.warning("Telegram is enabled but not fully configured (missing BOT_TOKEN or CHAT_ID)")
+    
+    # Check Discord configuration
+    if ENABLE_DISCORD and DISCORD_WEBHOOK_URL:
         enabled_methods.append("Discord")
+    elif ENABLE_DISCORD:
+        logging.warning("Discord is enabled but not fully configured (missing WEBHOOK_URL)")
     
     if enabled_methods:
         logging.info(f"Enabled notifications: {', '.join(enabled_methods)}")

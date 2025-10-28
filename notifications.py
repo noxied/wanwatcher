@@ -1,5 +1,5 @@
 """
-WANwatcher Notification Providers v1.3.0
+WANwatcher Notification Providers v1.3.1
 Supports Discord, Telegram, and Email notifications
 """
 
@@ -43,21 +43,15 @@ class DiscordNotifier(NotificationProvider):
         self.default_avatar_path = "/app/avatar.png"
         
     def _get_avatar_url(self) -> str:
-        """Get avatar URL - custom or default embedded"""
+        """Get avatar URL - custom or use webhook's configured avatar"""
+        # If custom avatar URL is provided via environment variable, use it
         if self.avatar_url:
             return self.avatar_url
         
-        # Try to use embedded avatar as data URL
-        if os.path.exists(self.default_avatar_path):
-            try:
-                with open(self.default_avatar_path, 'rb') as f:
-                    img_data = f.read()
-                    b64_data = base64.b64encode(img_data).decode('utf-8')
-                    return f"data:image/png;base64,{b64_data}"
-            except Exception as e:
-                logger.warning(f"Failed to load default avatar: {e}")
-        
-        return ""  # Discord will use default webhook avatar
+        # Return empty to use webhook's configured avatar (set in Discord webhook settings)
+        # This is the best approach as it respects the webhook's configuration
+        # Users can set avatar in Discord: Server Settings > Integrations > Webhooks > Edit
+        return ""
         
     def send_notification(self, current_ips: Dict[str, Optional[str]], 
                          previous_ips: Dict[str, Optional[str]], 
@@ -141,25 +135,30 @@ class DiscordNotifier(NotificationProvider):
             
             fields.append({
                 "name": "📦 Version",
-                "value": "v1.3.0",
+                "value": "v1.3.1",
                 "inline": True
             })
             
             # Build payload
             payload = {
                 "username": self.bot_name,
-                "avatar_url": self._get_avatar_url(),
                 "embeds": [{
                     "title": f"🌐 WAN IP Monitor Alert",
                     "description": f"**{title}**\n\n{change_info}",
                     "color": color,
                     "fields": fields,
                     "footer": {
-                        "text": f"WANwatcher v1.3.0 on {server_name}"
+                        "text": f"WANwatcher v1.3.1 on {server_name}"
                     },
                     "timestamp": datetime.utcnow().isoformat()
                 }]
             }
+            
+            # Only include avatar_url if custom avatar is provided
+            # Otherwise Discord uses the webhook's configured avatar
+            avatar_url = self._get_avatar_url()
+            if avatar_url:
+                payload["avatar_url"] = avatar_url
             
             # Send webhook
             response = requests.post(
@@ -185,15 +184,31 @@ class DiscordNotifier(NotificationProvider):
             # Extract changelog highlights (first few bullet points)
             changelog = update_info.get('release_body', '')
             changelog_lines = []
-            for line in changelog.split('\n')[:8]:  # First 8 lines
+            for line in changelog.split('\n')[:15]:  # Check more lines
                 line = line.strip()
                 if line and (line.startswith('- ') or line.startswith('* ') or line.startswith('• ')):
                     # Clean up markdown list markers
                     cleaned = line.lstrip('-*• ').strip()
-                    if cleaned and not cleaned.startswith('#'):  # Skip headers
+                    if cleaned and not cleaned.startswith('#') and len(cleaned) < 100:  # Skip headers and long lines
+                        # Truncate if still too long
+                        if len(cleaned) > 80:
+                            cleaned = cleaned[:77] + "..."
                         changelog_lines.append(f"• {cleaned}")
+                
+                # Stop if we have enough
+                if len(changelog_lines) >= 4:
+                    break
             
-            changelog_preview = '\n'.join(changelog_lines[:5]) if changelog_lines else "See release notes for details"
+            # Build preview with character limit (Discord field limit is 1024)
+            changelog_preview = ""
+            for line in changelog_lines[:4]:
+                if len(changelog_preview) + len(line) + 1 < 900:  # Leave some margin
+                    changelog_preview += line + "\n"
+                else:
+                    break
+            
+            if not changelog_preview.strip():
+                changelog_preview = "See release notes for details"
             
             embed = {
                 "title": "🆕 WANwatcher Update Available!",
@@ -217,7 +232,7 @@ class DiscordNotifier(NotificationProvider):
                     },
                     {
                         "name": "📋 What's New",
-                        "value": changelog_preview,
+                        "value": changelog_preview.strip(),
                         "inline": False
                     },
                     {
@@ -239,9 +254,13 @@ class DiscordNotifier(NotificationProvider):
             
             payload = {
                 "username": self.bot_name,
-                "avatar_url": self._get_avatar_url(),
                 "embeds": [embed]
             }
+            
+            # Only include avatar_url if custom avatar is provided
+            avatar_url = self._get_avatar_url()
+            if avatar_url:
+                payload["avatar_url"] = avatar_url
             
             response = requests.post(self.webhook_url, json=payload, timeout=10)
             
@@ -330,7 +349,7 @@ class TelegramNotifier(NotificationProvider):
             message_lines.extend([
                 f"<b>⏰ Detected At:</b> {datetime.now().strftime('%A, %B %d, %Y at %H:%M:%S')}",
                 f"<b>🐳 Environment:</b> Running in Docker",
-                f"<b>📦 Version:</b> v1.3.0"
+                f"<b>📦 Version:</b> v1.3.1"
             ])
             
             message = "\n".join(message_lines)
@@ -468,70 +487,111 @@ class EmailNotifier(NotificationProvider):
             color: #333;
             margin: 0;
             padding: 0;
-            background-color: #f5f5f5;
+            background-color: #e8f4f8;
         }}
         .container {{
             max-width: 600px;
             margin: 20px auto;
             background: #ffffff;
-            border-radius: 8px;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }}
+        .banner {{
+            width: 100%;
+            height: auto;
+            display: block;
         }}
         .header {{
-            background: {header_color};
+            background: linear-gradient(135deg, {header_color} 0%, #0099CC 100%);
             color: white;
             padding: 30px 20px;
             text-align: center;
         }}
         .header h1 {{
             margin: 0 0 10px 0;
-            font-size: 24px;
-            font-weight: 600;
+            font-size: 28px;
+            font-weight: 700;
         }}
         .header p {{
             margin: 0;
-            font-size: 14px;
+            font-size: 16px;
             opacity: 0.95;
         }}
         .content {{
             padding: 30px 20px;
+            background: #ffffff;
         }}
         .info-table {{
             width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
+            background: #f8fbfd;
+            border-radius: 8px;
+            overflow: hidden;
         }}
         .info-table td {{
-            padding: 12px 15px;
-            border-bottom: 1px solid #e0e0e0;
+            padding: 14px 18px;
+            border-bottom: 1px solid #e3eff5;
         }}
         .info-table td:first-child {{
             font-weight: 600;
-            color: #555;
-            width: 35%;
+            color: #1a5f7a;
+            width: 40%;
+            background: #f0f8fb;
         }}
         .info-table td:last-child {{
-            color: #333;
+            color: #2c3e50;
             font-family: 'Courier New', monospace;
+            font-weight: 500;
         }}
         .info-table tr:last-child td {{
             border-bottom: none;
         }}
         .section-title {{
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 18px;
+            font-weight: 700;
             color: {header_color};
-            margin: 25px 0 10px 0;
-            padding-bottom: 5px;
-            border-bottom: 2px solid {header_color};
+            margin: 30px 0 15px 0;
+            padding-bottom: 8px;
+            border-bottom: 3px solid {header_color};
         }}
         .footer {{
-            background: #f9f9f9;
-            padding: 20px;
+            background: linear-gradient(135deg, #1a5f7a 0%, #16213e 100%);
+            padding: 25px 20px;
             text-align: center;
+            font-size: 13px;
+            color: #e0e0e0;
+        }}
+        .badge {{
+            display: inline-block;
+            padding: 6px 12px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 6px;
             font-size: 12px;
-            color: #666;
+            color: white;
+            margin: 0 5px;
+        }}
+        .highlight-box {{
+            background: linear-gradient(135deg, #e3f2fd 0%, #f0f8fb 100%);
+            border-left: 4px solid {header_color};
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="https://raw.githubusercontent.com/noxied/wanwatcher/main/wanwatcher-banner.png" alt="WANwatcher" class="banner">
+        
+        <div class="header">
+            <h1>🌐 WAN IP Monitor Alert</h1>
+            <h2 style="margin: 10px 0 0 0; font-size: 22px; font-weight: 600;">{title}</h2>
+            <p style="margin-top: 12px; font-size: 15px;">{subtitle}</p>
+        </div>
+        
+        <div class="content"
             border-top: 1px solid #e0e0e0;
         }}
         .badge {{
@@ -632,19 +692,22 @@ class EmailNotifier(NotificationProvider):
             </tr>
             <tr>
                 <td>Version:</td>
-                <td>📦 v1.3.0</td>
+                <td>📦 v1.3.1</td>
             </tr>
         </table>
         
         </div>
         
         <div class="footer">
-            <p>
-                <span class="badge">WANwatcher v1.3.0</span>
-                <span class="badge">{server_name}</span>
+            <p style="margin: 0 0 12px 0;">
+                <span class="badge">🐳 WANwatcher v1.3.1</span>
+                <span class="badge">📍 {server_name}</span>
             </p>
-            <p style="margin-top: 10px; color: #999;">
-                Automated WAN IP monitoring system
+            <p style="margin: 0; font-size: 14px;">
+                🌐 Automated WAN IP Monitoring System
+            </p>
+            <p style="margin: 10px 0 0 0; font-size: 11px; opacity: 0.8;">
+                Multi-Platform Notifications: Discord • Telegram • Email
             </p>
         </div>
     </div>
@@ -719,10 +782,10 @@ class EmailNotifier(NotificationProvider):
             f"Server: {server_name}",
             f"Detected: {datetime.now().strftime('%A, %B %d, %Y at %H:%M:%S')}",
             f"Environment: Docker",
-            f"Version: v1.3.0",
+            f"Version: v1.3.1",
             "",
             "=" * 60,
-            f"WANwatcher v1.3.0 on {server_name}",
+            f"WANwatcher v1.3.1 on {server_name}",
             "=" * 60
         ])
         
@@ -825,22 +888,25 @@ WANwatcher Update Notification
 <head>
     <meta charset="UTF-8">
     <style>
-        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-        .container {{ max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #e8f4f8; margin: 0; padding: 0; }}
+        .container {{ max-width: 600px; margin: 20px auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }}
+        .banner {{ width: 100%; height: auto; display: block; }}
         .header {{ background: linear-gradient(135deg, #00D9FF 0%, #0099CC 100%); color: white; padding: 30px 20px; text-align: center; }}
-        .header h1 {{ margin: 0; font-size: 24px; }}
-        .content {{ padding: 30px 20px; }}
-        .version-box {{ background: #f5f5f5; border-left: 4px solid #00D9FF; padding: 15px; margin: 20px 0; }}
-        .version-box strong {{ color: #00D9FF; }}
-        .changelog {{ background: #fafafa; padding: 15px; border-radius: 5px; margin: 20px 0; }}
-        .changelog h3 {{ margin-top: 0; color: #00D9FF; }}
-        .button {{ display: inline-block; background: #00D9FF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }}
-        .code {{ background: #2d2d2d; color: #f8f8f8; padding: 15px; border-radius: 5px; font-family: monospace; margin: 10px 0; }}
-        .footer {{ background: #f9f9f9; padding: 20px; text-align: center; font-size: 12px; color: #666; }}
+        .header h1 {{ margin: 0; font-size: 28px; font-weight: 700; }}
+        .content {{ padding: 30px 20px; background: #ffffff; }}
+        .version-box {{ background: linear-gradient(135deg, #e3f2fd 0%, #f0f8fb 100%); border-left: 4px solid #00D9FF; padding: 20px; margin: 20px 0; border-radius: 8px; }}
+        .version-box strong {{ color: #1a5f7a; font-size: 16px; }}
+        .changelog {{ background: #f8fbfd; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px solid #e3eff5; }}
+        .changelog h3 {{ margin-top: 0; color: #00D9FF; font-size: 18px; }}
+        .button {{ display: inline-block; background: linear-gradient(135deg, #00D9FF 0%, #0099CC 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; margin: 20px 0; font-weight: 600; box-shadow: 0 4px 12px rgba(0,217,255,0.3); }}
+        .code {{ background: #2d2d2d; color: #00ff00; padding: 18px; border-radius: 8px; font-family: 'Courier New', monospace; margin: 15px 0; font-size: 14px; }}
+        .footer {{ background: linear-gradient(135deg, #1a5f7a 0%, #16213e 100%); padding: 25px 20px; text-align: center; font-size: 13px; color: #e0e0e0; }}
+        .badge {{ display: inline-block; padding: 6px 12px; background: rgba(255,255,255,0.2); border-radius: 6px; margin: 0 5px; }}
     </style>
 </head>
 <body>
     <div class="container">
+        <img src="https://raw.githubusercontent.com/noxied/wanwatcher/main/wanwatcher-banner.png" alt="WANwatcher" class="banner">
         <div class="header">
             <h1>🆕 WANwatcher Update Available!</h1>
         </div>
@@ -866,8 +932,16 @@ docker restart wanwatcher
             </div>
         </div>
         <div class="footer">
-            Update check for {server_name}<br>
-            WANwatcher Update Notification
+            <p style="margin: 0 0 12px 0;">
+                <span class="badge">🐳 WANwatcher v1.3.1</span>
+                <span class="badge">📍 {server_name}</span>
+            </p>
+            <p style="margin: 0; font-size: 14px;">
+                🆕 Update Notification System
+            </p>
+            <p style="margin: 10px 0 0 0; font-size: 11px; opacity: 0.8;">
+                Multi-Platform Notifications: Discord • Telegram • Email
+            </p>
         </div>
     </div>
 </body>
