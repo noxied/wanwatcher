@@ -3,7 +3,7 @@
 WANwatcher Docker - WAN IP Address Monitor with Multi-Platform Notifications
 Docker-optimized version with continuous loop mode
 
-Version: 1.3.0
+Version: 1.3.1
 
 Features:
 - Automatic IP change detection
@@ -27,13 +27,14 @@ from datetime import datetime
 from notifications import NotificationManager, DiscordNotifier, TelegramNotifier, EmailNotifier
 
 # Version
-VERSION = "1.3.0"
+VERSION = "1.3.1"
 
 # ============================================================================
 # CONFIGURATION - Loaded from Environment Variables
 # ============================================================================
 
 # Discord Configuration
+DISCORD_ENABLED = os.environ.get('DISCORD_ENABLED', 'false').lower() == 'true'
 DISCORD_WEBHOOK_URL = os.environ.get('DISCORD_WEBHOOK_URL', '')
 DISCORD_AVATAR_URL = os.environ.get('DISCORD_AVATAR_URL', '')
 
@@ -291,32 +292,44 @@ def initialize_notifications():
     """Initialize all configured notification providers"""
     
     # Add Discord if configured
-    if DISCORD_WEBHOOK_URL:
+    if DISCORD_ENABLED and DISCORD_WEBHOOK_URL:
         discord = DiscordNotifier(DISCORD_WEBHOOK_URL, BOT_NAME, DISCORD_AVATAR_URL)
         notification_manager.add_provider(discord)
         logging.info("Discord notifications enabled")
+    elif DISCORD_ENABLED and not DISCORD_WEBHOOK_URL:
+        logging.warning("Discord enabled but DISCORD_WEBHOOK_URL not configured")
     
     # Add Telegram if configured
     if TELEGRAM_ENABLED and TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
         telegram = TelegramNotifier(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TELEGRAM_PARSE_MODE)
         notification_manager.add_provider(telegram)
         logging.info("Telegram notifications enabled")
+    elif TELEGRAM_ENABLED and (not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID):
+        logging.warning("Telegram enabled but BOT_TOKEN or CHAT_ID not configured")
     
     # Add Email if configured
-    if EMAIL_ENABLED and EMAIL_SMTP_HOST and EMAIL_SMTP_USER and EMAIL_SMTP_PASSWORD and EMAIL_FROM and EMAIL_TO:
+    if EMAIL_ENABLED and all([EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD, EMAIL_FROM, EMAIL_TO]):
+        try:
+            email_port = int(EMAIL_SMTP_PORT)
+        except ValueError:
+            logging.error(f"Invalid EMAIL_SMTP_PORT: {EMAIL_SMTP_PORT}, using default 587")
+            email_port = 587
+        
         email = EmailNotifier(
             smtp_host=EMAIL_SMTP_HOST,
-            smtp_port=EMAIL_SMTP_PORT,
+            smtp_port=email_port,
             smtp_user=EMAIL_SMTP_USER,
             smtp_password=EMAIL_SMTP_PASSWORD,
             from_addr=EMAIL_FROM,
-            to_addrs=EMAIL_TO,
+            to_addrs=EMAIL_TO.split(','),
             use_tls=EMAIL_USE_TLS,
             use_ssl=EMAIL_USE_SSL,
             subject_prefix=EMAIL_SUBJECT_PREFIX
         )
         notification_manager.add_provider(email)
-        logging.info(f"Email notifications enabled (to: {EMAIL_TO})")
+        logging.info("Email notifications enabled")
+    elif EMAIL_ENABLED:
+        logging.warning("Email enabled but missing required configuration (SMTP_HOST, SMTP_USER, SMTP_PASSWORD, FROM, or TO)")
     
     if not notification_manager.providers:
         logging.warning("No notification providers configured!")
@@ -489,9 +502,31 @@ def main():
     initialize_notifications()
     
     logging.info("Notification Status:")
-    logging.info(f"  Discord: {'Configured' if DISCORD_WEBHOOK_URL else 'Not configured'}")
-    logging.info(f"  Telegram: {'Enabled' if TELEGRAM_ENABLED and TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID else 'Not configured'}")
-    logging.info(f"  Email: {'Enabled' if EMAIL_ENABLED and EMAIL_SMTP_HOST and EMAIL_FROM and EMAIL_TO else 'Not configured'}")
+    
+    # Discord status
+    if DISCORD_ENABLED and DISCORD_WEBHOOK_URL:
+        logging.info(f"  Discord: Configured ✓")
+    elif DISCORD_ENABLED:
+        logging.warning(f"  Discord: Enabled but WEBHOOK_URL missing ✗")
+    else:
+        logging.info(f"  Discord: Not enabled")
+    
+    # Telegram status
+    if TELEGRAM_ENABLED and TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+        logging.info(f"  Telegram: Configured ✓")
+    elif TELEGRAM_ENABLED:
+        logging.warning(f"  Telegram: Enabled but BOT_TOKEN or CHAT_ID missing ✗")
+    else:
+        logging.info(f"  Telegram: Not enabled")
+    
+    # Email status
+    if EMAIL_ENABLED and all([EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD, EMAIL_FROM, EMAIL_TO]):
+        logging.info(f"  Email: Configured ✓")
+    elif EMAIL_ENABLED:
+        logging.warning(f"  Email: Enabled but missing SMTP configuration ✗")
+    else:
+        logging.info(f"  Email: Not enabled")
+    
     logging.info(f"  ipinfo.io: {'Configured' if IPINFO_TOKEN else 'Not configured (geo data disabled)'}")
     logging.info(f"  Update Check: {'Enabled' if UPDATE_CHECK_ENABLED else 'Disabled'}")
     logging.info("=" * 60)
@@ -499,7 +534,10 @@ def main():
     # Validation
     if not notification_manager.providers:
         logging.error("FATAL: No notification providers configured!")
-        logging.error("Please configure at least one notification method (Discord, Telegram, or Email)")
+        logging.error("Please enable and configure at least one notification method:")
+        logging.error("  - Discord: Set DISCORD_ENABLED=true and DISCORD_WEBHOOK_URL")
+        logging.error("  - Telegram: Set TELEGRAM_ENABLED=true, TELEGRAM_BOT_TOKEN, and TELEGRAM_CHAT_ID")
+        logging.error("  - Email: Set EMAIL_ENABLED=true and all required SMTP settings")
         sys.exit(1)
     
     if not MONITOR_IPV4 and not MONITOR_IPV6:

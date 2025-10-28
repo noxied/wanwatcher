@@ -1,208 +1,435 @@
-# Upgrading from v1.1.0 to v1.2.0
+# WANwatcher Upgrading Guide
 
-## 🔄 Upgrade Process
+This guide provides detailed instructions for upgrading WANwatcher between versions.
 
-### Step 1: Pull New Image
+---
+
+## 📋 Quick Upgrade (Any Version)
+
+### For Docker Users:
 
 ```bash
-# Stop container
-docker stop wanwatcher
-
-# Pull new version
-docker pull noxied/wanwatcher:1.2.0
-
-# Or pull latest
+# 1. Pull latest image
 docker pull noxied/wanwatcher:latest
+
+# 2. Stop current container
+docker stop wanwatcher
+docker rm wanwatcher
+
+# 3. Start with updated configuration (see version-specific notes below)
+docker-compose up -d
+
+# Or if using docker run:
+docker run -d --name wanwatcher \
+  --restart unless-stopped \
+  -v ./data:/data \
+  -v ./logs:/logs \
+  -e DISCORD_ENABLED="true" \
+  -e DISCORD_WEBHOOK_URL="your_webhook" \
+  noxied/wanwatcher:latest
 ```
 
-### Step 2: Update Configuration
+---
 
-If you want to add Telegram notifications (new in v1.2.0):
+## 🆕 Upgrading to v1.3.1 (from v1.3.0)
+
+**Release Date:** October 28, 2025  
+**Type:** Patch/Bugfix Release  
+**Breaking Changes:** None  
+**Downtime:** ~1 minute
+
+### What's New
+- Fixed Discord notification avatar handling
+- Fixed version display consistency
+- Added `DISCORD_ENABLED` configuration flag
+
+### Required Changes
+
+#### 1. Add DISCORD_ENABLED Variable
+
+**In your `docker-compose.yml` or Docker run command:**
 
 ```yaml
 environment:
-  # Existing Discord config (keep as-is)
-  DISCORD_WEBHOOK_URL: "your_webhook_url"
-  
-  # NEW: Add Telegram configuration
+  DISCORD_ENABLED: "true"  # NEW - Required if using Discord
+  DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/..."
+```
+
+**Why:** Provides explicit control over Discord notifications, matching the pattern used for Telegram and Email.
+
+#### 2. Optional: Remove DISCORD_AVATAR_URL
+
+If you had set a custom avatar URL and want to use your webhook's configured avatar instead:
+
+```yaml
+environment:
+  # DISCORD_AVATAR_URL: ""  # Can be removed or left empty
+```
+
+### Step-by-Step Upgrade
+
+```bash
+# 1. Edit your docker-compose.yml
+nano docker-compose.yml
+
+# Add this line under environment:
+#   DISCORD_ENABLED: "true"
+
+# 2. Pull new image
+docker-compose pull
+
+# 3. Restart container
+docker-compose down
+docker-compose up -d
+
+# 4. Verify in logs
+docker-compose logs -f wanwatcher
+
+# Look for:
+# "Discord: Configured ✓"
+# "Discord notification sent successfully"
+```
+
+### Verification
+
+After upgrading, check:
+- ✅ Discord notification arrives with avatar
+- ✅ Version shows as "v1.3.1" everywhere
+- ✅ No errors in logs
+
+### Troubleshooting v1.3.1
+
+**Problem:** Discord notifications not working after upgrade
+
+**Solution:**
+1. Ensure `DISCORD_ENABLED="true"` is set
+2. Verify webhook URL is still valid
+3. Check logs for specific error messages
+
+**Problem:** Avatar not displaying
+
+**Solution:**
+1. Check webhook has avatar configured in Discord settings
+2. Or set custom avatar with `DISCORD_AVATAR_URL`
+3. Rebuild container if needed: `docker-compose build --no-cache`
+
+---
+
+## 🆕 Upgrading to v1.3.0 (from v1.2.0)
+
+**Release Date:** October 27, 2025  
+**Type:** Minor Release (New Features)  
+**Breaking Changes:** None  
+**Downtime:** ~1 minute
+
+### What's New
+- ✨ Email notifications support
+- ✨ Automatic update checking
+- ✨ Custom Discord webhook avatars
+- ✨ Enhanced notification templates
+
+### Optional New Features
+
+#### 1. Email Notifications (Optional)
+
+Add to your configuration if you want email notifications:
+
+```yaml
+environment:
+  # Email Configuration (NEW in v1.3.0)
+  EMAIL_ENABLED: "true"
+  EMAIL_SMTP_HOST: "smtp.gmail.com"
+  EMAIL_SMTP_PORT: "587"
+  EMAIL_SMTP_USER: "your-email@gmail.com"
+  EMAIL_SMTP_PASSWORD: "your-app-password"
+  EMAIL_FROM: "wanwatcher@yourdomain.com"
+  EMAIL_TO: "admin@yourdomain.com"
+  EMAIL_USE_TLS: "true"
+  EMAIL_SUBJECT_PREFIX: "[WANwatcher]"
+```
+
+**Gmail Users:** Use an [App Password](https://support.google.com/accounts/answer/185833)
+
+#### 2. Update Checking (Optional)
+
+```yaml
+environment:
+  # Update Check Configuration (NEW in v1.3.0)
+  UPDATE_CHECK_ENABLED: "true"       # Default: true
+  UPDATE_CHECK_INTERVAL: "86400"     # Check daily (in seconds)
+  UPDATE_CHECK_ON_STARTUP: "true"    # Check on container start
+```
+
+#### 3. Custom Discord Avatar (Optional)
+
+```yaml
+environment:
+  DISCORD_AVATAR_URL: "https://example.com/custom-avatar.png"
+```
+
+### Step-by-Step Upgrade
+
+```bash
+# 1. Backup current config
+cp docker-compose.yml docker-compose.yml.backup
+
+# 2. Pull new image
+docker pull noxied/wanwatcher:1.3.0
+
+# 3. Update docker-compose.yml (add new variables if desired)
+nano docker-compose.yml
+
+# 4. Restart
+docker-compose down
+docker-compose up -d
+
+# 5. Check logs
+docker-compose logs -f wanwatcher
+```
+
+### Verification
+
+Check that everything still works:
+- ✅ Existing Discord/Telegram notifications working
+- ✅ New features available (if configured)
+- ✅ No errors in logs
+
+---
+
+## 🆕 Upgrading to v1.2.0 (from v1.1.0 or earlier)
+
+**Release Date:** October 15, 2024  
+**Type:** Minor Release (New Features)  
+**Breaking Changes:** None  
+**Downtime:** ~1 minute
+
+### What's New
+- ✨ Telegram notifications
+- ✨ IPv6 support
+- ✨ Multiple IP detection services
+
+### Optional New Features
+
+#### 1. Telegram Notifications (Optional)
+
+```yaml
+environment:
+  # Telegram Configuration (NEW in v1.2.0)
   TELEGRAM_ENABLED: "true"
-  TELEGRAM_BOT_TOKEN: "your_bot_token"
-  TELEGRAM_CHAT_ID: "your_chat_id"
+  TELEGRAM_BOT_TOKEN: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+  TELEGRAM_CHAT_ID: "123456789"
   TELEGRAM_PARSE_MODE: "HTML"
 ```
 
-See [README.md](README.md) for how to get Telegram bot token and chat ID.
+**Setup:**
+1. Create bot with [@BotFather](https://t.me/BotFather)
+2. Get chat ID from [@userinfobot](https://t.me/userinfobot)
 
-### Step 3: Restart Container
+#### 2. IPv6 Monitoring (Optional)
 
-**Via Docker Compose:**
-```bash
-docker-compose up -d
+```yaml
+environment:
+  # IPv6 Configuration (NEW in v1.2.0)
+  MONITOR_IPV4: "true"  # Default: true
+  MONITOR_IPV6: "true"  # Default: true (NEW!)
 ```
 
-**Via Portainer:**
-1. Edit stack with new environment variables
-2. Enable "Pull latest image"
-3. Click "Update"
-
-**Via Docker CLI:**
-```bash
-docker start wanwatcher
-```
-
-### Step 4: Trigger Initial Notification (Important!)
-
-After upgrading, you should trigger a notification to test both platforms:
+### Step-by-Step Upgrade
 
 ```bash
-# Remove old database
-docker exec wanwatcher rm /data/ipinfo.db
+# 1. Backup
+cp docker-compose.yml docker-compose.yml.backup
 
-# Restart container
-docker restart wanwatcher
-
-# Check logs
-docker logs -f wanwatcher
-```
-
-**Why?**
-- Ensures v1.2.0 sends initial notifications
-- Tests both Discord and Telegram
-- Verifies version display is working
-
-You should receive "Initial IP Detection" notifications in:
-- Discord (with improved layout)
-- Telegram (if configured)
-
-Both will show "Version: v1.2.0"
-
----
-
-## ✅ Verification
-
-After upgrade, verify:
-
-1. **Check container is running v1.2.0:**
-   ```bash
-   docker logs wanwatcher | grep "v1.2.0"
-   ```
-
-2. **Check notification providers:**
-   ```bash
-   docker logs wanwatcher | grep "Notification Status" -A 3
-   ```
-   
-   Should show:
-   ```
-   Notification Status:
-     Discord: Configured
-     Telegram: Enabled (if configured)
-     ipinfo.io: Configured (if configured)
-   ```
-
-3. **Check Discord notification:**
-   - Should show "Version: v1.2.0" in Environment field
-   - Should show "WANwatcher v1.2.0 on [your_server]" in footer
-   - Improved spacing between IP fields
-
-4. **Check Telegram notification (if enabled):**
-   - Should receive message from your bot
-   - Should show "Version: v1.2.0"
-   - Clean HTML formatting
-
----
-
-## 🆕 What's New in v1.2.0
-
-### New Features
-- **Telegram Bot Support** - Receive notifications via Telegram
-- **Multi-Platform Notifications** - Use Discord, Telegram, or both
-- **Version Display** - See which version sent each notification
-- **Improved Discord Layout** - Better spacing and readability
-
-### New Environment Variables
-```bash
-TELEGRAM_ENABLED="false"        # Enable Telegram notifications
-TELEGRAM_BOT_TOKEN=""           # Bot token from @BotFather
-TELEGRAM_CHAT_ID=""             # Your Telegram chat ID
-TELEGRAM_PARSE_MODE="HTML"      # Message format (HTML or Markdown)
-```
-
-### Breaking Changes
-**None!** - v1.2.0 is fully backward compatible with v1.1.0
-
-If you don't configure Telegram, everything works exactly as before (Discord-only).
-
----
-
-## 🔧 Troubleshooting
-
-### No Telegram Notifications
-
-1. **Check bot token and chat ID:**
-   ```bash
-   docker inspect wanwatcher | grep TELEGRAM
-   ```
-
-2. **Test Telegram API:**
-   ```bash
-   curl "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getMe"
-   ```
-
-3. **Verify you started chat with bot:**
-   - Open Telegram
-   - Find your bot
-   - Send `/start` command
-
-4. **Check logs:**
-   ```bash
-   docker logs wanwatcher | grep -i telegram
-   ```
-
-### Container Shows Old Version
-
-If logs still show old version message:
-
-```bash
-# Force remove old image
-docker stop wanwatcher
-docker rm wanwatcher
-docker rmi noxied/wanwatcher:latest
-
-# Pull fresh image
+# 2. Pull new image
 docker pull noxied/wanwatcher:1.2.0
 
-# Recreate container
+# 3. Update config (optional new features)
+nano docker-compose.yml
+
+# 4. Restart
+docker-compose down
 docker-compose up -d
-# or redeploy via Portainer
+
+# 5. Verify
+docker-compose logs -f wanwatcher
 ```
 
-### Database Issues
+---
 
-If you see no notifications after upgrade:
+## 💾 Backup & Recovery
+
+### Before Any Upgrade
 
 ```bash
-# Remove database to trigger fresh detection
-docker exec wanwatcher rm /data/ipinfo.db
-docker restart wanwatcher
+# Backup database and logs
+cp -r data data.backup
+cp -r logs logs.backup
+
+# Backup configuration
+cp docker-compose.yml docker-compose.yml.backup
+```
+
+### If Something Goes Wrong
+
+```bash
+# Roll back to previous version
+docker-compose down
+docker pull noxied/wanwatcher:1.2.0  # Or your previous version
+docker-compose up -d
+
+# Restore data if needed
+rm -rf data logs
+mv data.backup data
+mv logs.backup logs
 ```
 
 ---
 
-## 📚 Additional Resources
+## 🔄 Migration Paths
 
-- [README.md](README.md) - Full documentation
-- [CHANGELOG.md](CHANGELOG.md) - Complete changelog
-- [SECURITY.md](SECURITY.md) - Security best practices
-- [GitHub Issues](https://github.com/noxied/wanwatcher/issues) - Report issues
+### From v1.0.0 to Latest (v1.3.1)
+
+**Recommended:** Upgrade step-by-step through each version
+1. v1.0.0 → v1.1.0
+2. v1.1.0 → v1.2.0
+3. v1.2.0 → v1.3.0
+4. v1.3.0 → v1.3.1
+
+**Alternative:** Direct upgrade to v1.3.1 (acceptable but test thoroughly)
+
+### Configuration Evolution
+
+**v1.0.0:**
+```yaml
+environment:
+  DISCORD_WEBHOOK_URL: "..."
+  SERVER_NAME: "My Server"
+  CHECK_INTERVAL: "900"
+```
+
+**v1.3.1:**
+```yaml
+environment:
+  # Discord (Enhanced in v1.3.0, v1.3.1)
+  DISCORD_ENABLED: "true"           # NEW in v1.3.1
+  DISCORD_WEBHOOK_URL: "..."        # v1.0.0
+  DISCORD_AVATAR_URL: ""            # NEW in v1.3.0 (optional)
+  
+  # Telegram (NEW in v1.2.0)
+  TELEGRAM_ENABLED: "false"
+  TELEGRAM_BOT_TOKEN: ""
+  TELEGRAM_CHAT_ID: ""
+  
+  # Email (NEW in v1.3.0)
+  EMAIL_ENABLED: "false"
+  EMAIL_SMTP_HOST: ""
+  # ... more email config
+  
+  # General (v1.0.0, enhanced in later versions)
+  SERVER_NAME: "My Server"
+  CHECK_INTERVAL: "900"
+  MONITOR_IPV4: "true"              # NEW in v1.2.0
+  MONITOR_IPV6: "true"              # NEW in v1.2.0
+  IPINFO_TOKEN: ""                  # NEW in v1.1.0 (optional)
+```
 
 ---
 
-## 🎉 Success!
+## 🧪 Testing After Upgrade
 
-Once you see:
-- ✅ "WANwatcher v1.2.0 Docker started" in logs
-- ✅ Notifications in Discord (with version)
-- ✅ Notifications in Telegram (if enabled)
+### 1. Check Logs
+```bash
+docker-compose logs -f wanwatcher | head -50
+```
 
-**You're all set!** WANwatcher will now monitor your IPs and notify both platforms when they change.
+**Look for:**
+- ✅ Version number (should show new version)
+- ✅ "Configured ✓" for enabled platforms
+- ✅ No ERROR messages
+- ✅ Successful notification sent
+
+### 2. Trigger Test Notification
+
+**Option A:** Change IP (simulated)
+```bash
+# Delete database to trigger "first run" notification
+docker-compose down
+sudo rm -f data/ipinfo.db
+docker-compose up -d
+```
+
+**Option B:** Wait for next check interval
+
+### 3. Verify Notifications
+
+Check each enabled platform:
+- ✅ Discord: Notification arrives with correct info
+- ✅ Telegram: Message formatted correctly
+- ✅ Email: Email received with proper formatting
+
+---
+
+## ❓ Common Upgrade Issues
+
+### Issue: "Configuration not found" after upgrade
+
+**Cause:** Environment variables not passed correctly
+
+**Solution:**
+```bash
+# Check environment
+docker exec wanwatcher env | grep DISCORD
+
+# Restart with explicit config
+docker-compose down
+docker-compose up -d
+```
+
+### Issue: Notifications stop working after upgrade
+
+**Cause:** New configuration flags required (v1.3.1+)
+
+**Solution:**
+```yaml
+# Add missing flags
+DISCORD_ENABLED: "true"    # Required in v1.3.1+
+TELEGRAM_ENABLED: "false"  # or "true" if using
+EMAIL_ENABLED: "false"     # or "true" if using
+```
+
+### Issue: Old version still running after pull
+
+**Cause:** Image not updated
+
+**Solution:**
+```bash
+# Force pull and rebuild
+docker-compose pull
+docker-compose down
+docker rmi noxied/wanwatcher:old-version
+docker-compose up -d
+```
+
+---
+
+## 📞 Support
+
+If you encounter issues during upgrade:
+
+1. **Check logs:** `docker-compose logs wanwatcher`
+2. **Review config:** Compare with examples in [README.md](README.md)
+3. **GitHub Issues:** https://github.com/noxied/wanwatcher/issues
+4. **Discussions:** https://github.com/noxied/wanwatcher/discussions
+
+---
+
+## 🔗 Additional Resources
+
+- [README.md](README.md) - Full documentation
+- [CHANGELOG.md](CHANGELOG.md) - Detailed version history
+- [Troubleshooting Guide](docs/troubleshooting.md) - Common issues & solutions
+- [GitHub Releases](https://github.com/noxied/wanwatcher/releases) - Release notes
+
+---
+
+**Always backup before upgrading!** 💾
