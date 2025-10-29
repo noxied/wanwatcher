@@ -57,7 +57,8 @@ class DiscordNotifier(NotificationProvider):
                          previous_ips: Dict[str, Optional[str]], 
                          geo_data: Optional[Dict[str, Any]], 
                          is_first_run: bool,
-                         server_name: str) -> bool:
+                         server_name: str,
+                         version: str = "1.3.2") -> bool:
         """Send Discord webhook notification"""
         try:
             # Determine notification type
@@ -289,7 +290,8 @@ class TelegramNotifier(NotificationProvider):
                          previous_ips: Dict[str, Optional[str]], 
                          geo_data: Optional[Dict[str, Any]], 
                          is_first_run: bool,
-                         server_name: str) -> bool:
+                         server_name: str,
+                         version: str = "1.3.2") -> bool:
         """Send Telegram notification"""
         try:
             # Determine notification type
@@ -799,7 +801,8 @@ class EmailNotifier(NotificationProvider):
                          previous_ips: Dict[str, Optional[str]], 
                          geo_data: Optional[Dict[str, Any]], 
                          is_first_run: bool,
-                         server_name: str) -> bool:
+                         server_name: str,
+                         version: str = "1.3.2") -> bool:
         """Send email notification via SMTP"""
         try:
             # Build subject
