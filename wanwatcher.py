@@ -14,7 +14,7 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 
 # Version
-VERSION = "1.3.2"
+VERSION = "1.3.3"
 
 # Configuration from environment variables
 SERVER_NAME = os.getenv('SERVER_NAME', 'Server')

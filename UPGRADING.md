@@ -21,6 +21,46 @@ docker-compose up -d
 
 # Or if using docker run:
 docker run -d --name wanwatcher \
+## 🆕 Upgrading to v1.3.3 (from v1.3.2)
+
+**Release Date:** October 29, 2025  
+**Type:** Patch Release - Version Correction  
+**Breaking Changes:** None  
+**Downtime:** ~1 minute
+
+### What's New
+- **Version Consistency:** All components now display v1.3.3 consistently
+- Internal version numbers synchronized across all files
+- No functional changes from v1.3.2
+
+### Required Changes
+
+**None.** This is a simple version number correction. Just pull and restart:
+
+```bash
+# 1. Pull new image
+docker-compose pull
+
+# Or for specific version:
+docker pull noxied/wanwatcher:1.3.3
+
+# 2. Restart container
+docker-compose down
+docker-compose up -d
+
+# 3. Verify version in logs
+docker-compose logs -f wanwatcher | grep "v1.3.3"
+```
+
+### Verification
+
+After upgrading, check:
+- ✅ Version shows as "WANwatcher v1.3.3" in logs
+- ✅ Notifications display "v1.3.3"
+- ✅ No errors in logs
+
+---
+
 ## 🆕 Upgrading to v1.3.2 (from v1.3.1)
 
 **Release Date:** October 29, 2025  
