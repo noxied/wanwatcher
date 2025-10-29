@@ -8,7 +8,7 @@ import logging
 import json
 import base64
 import os
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union, List
 from datetime import datetime
 import smtplib
 from email.mime.text import MIMEText
@@ -437,14 +437,18 @@ class EmailNotifier(NotificationProvider):
     """Email SMTP notification provider"""
     
     def __init__(self, smtp_host: str, smtp_port: int, smtp_user: str, smtp_password: str,
-                 from_addr: str, to_addrs: str, use_tls: bool = True, use_ssl: bool = False,
+                 from_addr: str, to_addrs: Union[str, List[str]], use_tls: bool = True, use_ssl: bool = False,
                  subject_prefix: str = "[WANwatcher]"):
         self.smtp_host = smtp_host
         self.smtp_port = int(smtp_port)
         self.smtp_user = smtp_user
         self.smtp_password = smtp_password
         self.from_addr = from_addr
-        self.to_addrs = [addr.strip() for addr in to_addrs.split(',')]
+        # Handle both string and list inputs for to_addrs
+        if isinstance(to_addrs, list):
+            self.to_addrs = to_addrs
+        else:
+            self.to_addrs = [addr.strip() for addr in to_addrs.split(',')]
         self.use_tls = use_tls
         self.use_ssl = use_ssl
         self.subject_prefix = subject_prefix
