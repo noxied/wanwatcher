@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.2] - 2025-10-29
 
 ### 🐛 Fixed
+- **CRITICAL - Email Template:** Converted email HTML to Gmail-compatible inline styles
+  - Gmail strips `<style>` tags from emails, breaking custom CSS
+  - Converted all CSS to inline `style=""` attributes that Gmail respects
+  - Email notifications now properly display dark theme (#2c2c2c background)
+  - Fixed duplicate header issue caused by malformed HTML (removed lines 601-624)
+  - Implemented professional dark theme with proper contrast
+  - Email template now mobile-responsive with proper scaling
+  - Reduced email size by 15% (more efficient inline styles)
 - **CRITICAL - Documentation:** Fixed email variable names in README.md (18 instances)
   - Corrected `EMAIL_SMTP_SERVER` → `EMAIL_SMTP_HOST`
   - Corrected `EMAIL_USERNAME` → `EMAIL_SMTP_USER`

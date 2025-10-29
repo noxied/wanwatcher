@@ -461,7 +461,7 @@ class EmailNotifier(NotificationProvider):
                          is_first_run: bool,
                          server_name: str,
                          version: str = "1.3.2") -> str:
-        """Build HTML email content"""
+        """Build HTML email content with Gmail-compatible inline styles (no <style> tag)"""
         
         # Determine colors and title
         if is_first_run:
@@ -481,165 +481,44 @@ class EmailNotifier(NotificationProvider):
             
             subtitle = "<br>".join(changes) if changes else "IP information updated"
         
+        # Build HTML with ALL INLINE STYLES (Gmail strips <style> tags)
         html = f"""
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            background-color: #e8f4f8;
-        }}
-        .container {{
-            max-width: 600px;
-            margin: 20px auto;
-            background: #ffffff;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-        }}
-        .banner {{
-            width: 100%;
-            height: auto;
-            display: block;
-        }}
-        .header {{
-            background: linear-gradient(135deg, {header_color} 0%, #0099CC 100%);
-            color: white;
-            padding: 30px 20px;
-            text-align: center;
-        }}
-        .header h1 {{
-            margin: 0 0 10px 0;
-            font-size: 28px;
-            font-weight: 700;
-        }}
-        .header p {{
-            margin: 0;
-            font-size: 16px;
-            opacity: 0.95;
-        }}
-        .content {{
-            padding: 30px 20px;
-            background: #ffffff;
-        }}
-        .info-table {{
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            background: #f8fbfd;
-            border-radius: 8px;
-            overflow: hidden;
-        }}
-        .info-table td {{
-            padding: 14px 18px;
-            border-bottom: 1px solid #e3eff5;
-        }}
-        .info-table td:first-child {{
-            font-weight: 600;
-            color: #1a5f7a;
-            width: 40%;
-            background: #f0f8fb;
-        }}
-        .info-table td:last-child {{
-            color: #2c3e50;
-            font-family: 'Courier New', monospace;
-            font-weight: 500;
-        }}
-        .info-table tr:last-child td {{
-            border-bottom: none;
-        }}
-        .section-title {{
-            font-size: 18px;
-            font-weight: 700;
-            color: {header_color};
-            margin: 30px 0 15px 0;
-            padding-bottom: 8px;
-            border-bottom: 3px solid {header_color};
-        }}
-        .footer {{
-            background: linear-gradient(135deg, #1a5f7a 0%, #16213e 100%);
-            padding: 25px 20px;
-            text-align: center;
-            font-size: 13px;
-            color: #e0e0e0;
-        }}
-        .badge {{
-            display: inline-block;
-            padding: 6px 12px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 6px;
-            font-size: 12px;
-            color: white;
-            margin: 0 5px;
-        }}
-        .highlight-box {{
-            background: linear-gradient(135deg, #e3f2fd 0%, #f0f8fb 100%);
-            border-left: 4px solid {header_color};
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-        }}
-    </style>
 </head>
-<body>
-    <div class="container">
-        <img src="https://raw.githubusercontent.com/noxied/wanwatcher/main/wanwatcher-banner.png" alt="WANwatcher" class="banner">
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #e0e0e0; margin: 0; padding: 10px; background-color: #2c2c2c;">
+    <div style="max-width: 600px; margin: 10px auto; background-color: #1e1e1e; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+        <img src="https://raw.githubusercontent.com/noxied/wanwatcher/main/wanwatcher-banner.png" alt="WANwatcher" style="width: 100%; height: auto; display: block;">
         
-        <div class="header">
-            <h1>🌐 WAN IP Monitor Alert</h1>
-            <h2 style="margin: 10px 0 0 0; font-size: 22px; font-weight: 600;">{title}</h2>
-            <p style="margin-top: 12px; font-size: 15px;">{subtitle}</p>
+        <div style="background: linear-gradient(135deg, {header_color} 0%, #0099CC 100%); color: white; padding: 20px 15px; text-align: center;">
+            <h1 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 700; color: white;">🌐 WAN IP Monitor Alert</h1>
+            <h2 style="margin: 8px 0 0 0; font-size: 20px; font-weight: 600; color: white;">{title}</h2>
+            <p style="margin: 10px 0 0 0; font-size: 15px; opacity: 0.95; color: white;">{subtitle}</p>
         </div>
         
-        <div class="content"
-            border-top: 1px solid #e0e0e0;
-        }}
-        .badge {{
-            display: inline-block;
-            padding: 4px 8px;
-            background: #f0f0f0;
-            border-radius: 4px;
-            font-size: 12px;
-            color: #666;
-            margin: 0 5px;
-        }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🌐 WAN IP Monitor Alert</h1>
-            <h2 style="margin: 10px 0 0 0; font-size: 20px; font-weight: 500;">{title}</h2>
-            <p style="margin-top: 10px;">{subtitle}</p>
-        </div>
-        
-        <div class="content">
+        <div style="padding: 20px 15px; background-color: #1e1e1e;">
 """
         
         # Current IPs section
-        html += '<div class="section-title">📍 Current IP Addresses</div>'
-        html += '<table class="info-table">'
+        html += f'<div style="font-size: 17px; font-weight: 700; color: {header_color}; margin: 20px 0 12px 0; padding-bottom: 6px; border-bottom: 2px solid {header_color};">📍 Current IP Addresses</div>'
+        html += '<table style="width: 100%; border-collapse: collapse; margin: 15px 0; background-color: #252525; border-radius: 6px;">'
         
         if current_ips.get('ipv4'):
             html += f"""
             <tr>
-                <td>IPv4 Address:</td>
-                <td>{current_ips['ipv4']}</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #333; font-weight: 600; color: #4CAF50; width: 40%; background-color: #2a2a2a;">IPv4 Address:</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #333; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">{current_ips['ipv4']}</td>
             </tr>
 """
         
         if current_ips.get('ipv6'):
             html += f"""
             <tr>
-                <td>IPv6 Address:</td>
-                <td>{current_ips['ipv6']}</td>
+                <td style="padding: 12px 15px; font-weight: 600; color: #4CAF50; width: 40%; background-color: #2a2a2a;">IPv6 Address:</td>
+                <td style="padding: 12px 15px; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">{current_ips['ipv6']}</td>
             </tr>
 """
         
@@ -647,8 +526,8 @@ class EmailNotifier(NotificationProvider):
         
         # Geographic information
         if geo_data:
-            html += '<div class="section-title">📍 Location Information</div>'
-            html += '<table class="info-table">'
+            html += f'<div style="font-size: 17px; font-weight: 700; color: {header_color}; margin: 20px 0 12px 0; padding-bottom: 6px; border-bottom: 2px solid {header_color};">📍 Location Information</div>'
+            html += '<table style="width: 100%; border-collapse: collapse; margin: 15px 0; background-color: #252525; border-radius: 6px;">'
             
             if geo_data.get('city') or geo_data.get('region') or geo_data.get('country'):
                 location = ", ".join(filter(None, [
@@ -658,62 +537,62 @@ class EmailNotifier(NotificationProvider):
                 ]))
                 html += f"""
             <tr>
-                <td>Location:</td>
-                <td>🌍 {location}</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #333; font-weight: 600; color: #4CAF50; width: 40%; background-color: #2a2a2a;">Location:</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #333; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">🌍 {location}</td>
             </tr>
 """
             
             if geo_data.get('org'):
                 html += f"""
             <tr>
-                <td>ISP / Organization:</td>
-                <td>🏢 {geo_data['org']}</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #333; font-weight: 600; color: #4CAF50; width: 40%; background-color: #2a2a2a;">ISP / Organization:</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #333; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">🏢 {geo_data['org']}</td>
             </tr>
 """
             
             if geo_data.get('timezone'):
                 html += f"""
             <tr>
-                <td>Timezone:</td>
-                <td>🕐 {geo_data['timezone']}</td>
+                <td style="padding: 12px 15px; font-weight: 600; color: #4CAF50; width: 40%; background-color: #2a2a2a;">Timezone:</td>
+                <td style="padding: 12px 15px; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">🕐 {geo_data['timezone']}</td>
             </tr>
 """
             
             html += '</table>'
         
         # Metadata
-        html += '<div class="section-title">ℹ️ Detection Details</div>'
+        html += f'<div style="font-size: 17px; font-weight: 700; color: {header_color}; margin: 20px 0 12px 0; padding-bottom: 6px; border-bottom: 2px solid {header_color};">ℹ️ Detection Details</div>'
         html += f"""
-        <table class="info-table">
+        <table style="width: 100%; border-collapse: collapse; margin: 15px 0; background-color: #252525; border-radius: 6px;">
             <tr>
-                <td>Server Name:</td>
-                <td>{server_name}</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #333; font-weight: 600; color: #4CAF50; width: 40%; background-color: #2a2a2a;">Server Name:</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #333; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">{server_name}</td>
             </tr>
             <tr>
-                <td>Detected At:</td>
-                <td>{datetime.now().strftime('%A, %B %d, %Y at %H:%M:%S')}</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #333; font-weight: 600; color: #4CAF50; width: 40%; background-color: #2a2a2a;">Detected At:</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #333; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">{datetime.now().strftime('%A, %B %d, %Y at %H:%M:%S')}</td>
             </tr>
             <tr>
-                <td>Environment:</td>
-                <td>🐳 Running in Docker</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #333; font-weight: 600; color: #4CAF50; width: 40%; background-color: #2a2a2a;">Environment:</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #333; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">🐳 Running in Docker</td>
             </tr>
             <tr>
-                <td>Version:</td>
-                <td>📦 v{version}</td>
+                <td style="padding: 12px 15px; font-weight: 600; color: #4CAF50; width: 40%; background-color: #2a2a2a;">Version:</td>
+                <td style="padding: 12px 15px; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">📦 v{version}</td>
             </tr>
         </table>
         
         </div>
         
-        <div class="footer">
-            <p style="margin: 0 0 12px 0;">
-                <span class="badge">🐳 WANwatcher v{version}</span>
-                <span class="badge">📍 {server_name}</span>
+        <div style="background: linear-gradient(135deg, #1a5f7a 0%, #16213e 100%); padding: 20px 15px; text-align: center; font-size: 13px; color: #e0e0e0;">
+            <p style="margin: 0 0 10px 0;">
+                <span style="display: inline-block; padding: 5px 10px; background-color: rgba(255,255,255,0.15); border-radius: 5px; font-size: 12px; color: white; margin: 0 4px;">🐳 WANwatcher v{version}</span>
+                <span style="display: inline-block; padding: 5px 10px; background-color: rgba(255,255,255,0.15); border-radius: 5px; font-size: 12px; color: white; margin: 0 4px;">📍 {server_name}</span>
             </p>
-            <p style="margin: 0; font-size: 14px;">
+            <p style="margin: 0; font-size: 14px; color: #e0e0e0;">
                 🌐 Automated WAN IP Monitoring System
             </p>
-            <p style="margin: 10px 0 0 0; font-size: 11px; opacity: 0.8;">
+            <p style="margin: 8px 0 0 0; font-size: 11px; opacity: 0.8; color: #e0e0e0;">
                 Multi-Platform Notifications: Discord • Telegram • Email
             </p>
         </div>

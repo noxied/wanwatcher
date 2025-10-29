@@ -29,9 +29,11 @@ docker run -d --name wanwatcher \
 **Downtime:** ~1 minute
 
 ### What's New
+- **Fixed email template:** Gmail-compatible inline styles for dark theme
 - Fixed email variable names in README.md
 - Fixed hardcoded version strings in notifications
 - Updated wanwatcher.py for consistency
+- Email notifications now display professional dark theme
 
 ### Required Changes
 
@@ -95,6 +97,7 @@ After upgrading, check:
 - ✅ Version shows as "WANwatcher v1.3.2" in logs
 - ✅ Email shows "Configured ✓" (if enabled)
 - ✅ Notifications display "v1.3.2" in all platforms
+- ✅ Email notifications show dark theme (if enabled)
 - ✅ No errors in logs
 
 ### Troubleshooting v1.3.2
