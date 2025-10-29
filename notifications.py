@@ -1,5 +1,5 @@
 """
-WANwatcher Notification Providers v1.3.2
+WANwatcher Notification Providers v1.3.3
 Supports Discord, Telegram, and Email notifications
 """
 
@@ -28,7 +28,7 @@ class NotificationProvider:
         """Send notification - to be implemented by subclasses"""
         raise NotImplementedError
     
-    def send_update_notification(self, update_info: Dict[str, str], server_name: str, version: str = "1.3.2") -> bool:
+    def send_update_notification(self, update_info: Dict[str, str], server_name: str, version: str = "1.3.3") -> bool:
         """Send update notification - to be implemented by subclasses"""
         raise NotImplementedError
 
@@ -58,7 +58,7 @@ class DiscordNotifier(NotificationProvider):
                          geo_data: Optional[Dict[str, Any]], 
                          is_first_run: bool,
                          server_name: str,
-                         version: str = "1.3.2") -> bool:
+                         version: str = "1.3.3") -> bool:
         """Send Discord webhook notification"""
         try:
             # Determine notification type
@@ -179,7 +179,7 @@ class DiscordNotifier(NotificationProvider):
             logger.error(f"Failed to send Discord notification: {e}")
             return False
     
-    def send_update_notification(self, update_info: Dict[str, str], server_name: str, version: str = "1.3.2") -> bool:
+    def send_update_notification(self, update_info: Dict[str, str], server_name: str, version: str = "1.3.3") -> bool:
         """Send Discord update notification"""
         try:
             # Extract changelog highlights (first few bullet points)
@@ -291,7 +291,7 @@ class TelegramNotifier(NotificationProvider):
                          geo_data: Optional[Dict[str, Any]], 
                          is_first_run: bool,
                          server_name: str,
-                         version: str = "1.3.2") -> bool:
+                         version: str = "1.3.3") -> bool:
         """Send Telegram notification"""
         try:
             # Determine notification type
@@ -376,7 +376,7 @@ class TelegramNotifier(NotificationProvider):
             logger.error(f"Failed to send Telegram notification: {e}")
             return False
     
-    def send_update_notification(self, update_info: Dict[str, str], server_name: str, version: str = "1.3.2") -> bool:
+    def send_update_notification(self, update_info: Dict[str, str], server_name: str, version: str = "1.3.3") -> bool:
         """Send Telegram update notification"""
         try:
             # Extract changelog highlights
@@ -460,7 +460,7 @@ class EmailNotifier(NotificationProvider):
                          geo_data: Optional[Dict[str, Any]], 
                          is_first_run: bool,
                          server_name: str,
-                         version: str = "1.3.2") -> str:
+                         version: str = "1.3.3") -> str:
         """Build HTML email content with Gmail-compatible inline styles (no <style> tag)"""
         
         # Determine colors and title
@@ -607,7 +607,7 @@ class EmailNotifier(NotificationProvider):
                          geo_data: Optional[Dict[str, Any]], 
                          is_first_run: bool,
                          server_name: str,
-                         version: str = "1.3.2") -> str:
+                         version: str = "1.3.3") -> str:
         """Build plain text email content"""
         
         lines = [
@@ -683,7 +683,7 @@ class EmailNotifier(NotificationProvider):
                          geo_data: Optional[Dict[str, Any]], 
                          is_first_run: bool,
                          server_name: str,
-                         version: str = "1.3.2") -> bool:
+                         version: str = "1.3.3") -> bool:
         """Send email notification via SMTP"""
         try:
             # Build subject
@@ -730,7 +730,7 @@ class EmailNotifier(NotificationProvider):
             logger.error(f"Failed to send email notification: {e}")
             return False
     
-    def send_update_notification(self, update_info: Dict[str, str], server_name: str, version: str = "1.3.2") -> bool:
+    def send_update_notification(self, update_info: Dict[str, str], server_name: str, version: str = "1.3.3") -> bool:
         """Send email update notification"""
         try:
             subject = f"{self.subject_prefix} Update Available: v{update_info['latest_version']}"
@@ -883,7 +883,7 @@ class NotificationManager:
                    geo_data: Optional[Dict[str, Any]], 
                    is_first_run: bool,
                    server_name: str,
-                   version: str = "1.3.2") -> Dict[str, bool]:
+                   version: str = "1.3.3") -> Dict[str, bool]:
         """Send notification to all configured providers"""
         results = {}
         
@@ -900,7 +900,7 @@ class NotificationManager:
         
         return results
     
-    def notify_update(self, update_info: Dict[str, str], server_name: str, version: str = "1.3.2") -> Dict[str, bool]:
+    def notify_update(self, update_info: Dict[str, str], server_name: str, version: str = "1.3.3") -> Dict[str, bool]:
         """Send update notification to all configured providers"""
         results = {}
         

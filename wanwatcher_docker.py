@@ -27,7 +27,7 @@ from datetime import datetime
 from notifications import NotificationManager, DiscordNotifier, TelegramNotifier, EmailNotifier
 
 # Version
-VERSION = "1.3.2"
+VERSION = "1.3.3"
 
 # ============================================================================
 # CONFIGURATION - Loaded from Environment Variables

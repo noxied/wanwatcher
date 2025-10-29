@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.3] - 2025-10-29
+
+### 🛠 Fixed
+- **Version Consistency:** Updated all version references from 1.3.2 to 1.3.3
+  - Fixed version number in wanwatcher_docker.py
+  - Fixed version number in wanwatcher.py
+  - Fixed version number in notifications.py
+  - Ensures consistent version display across all components
+
+### 📝 Documentation
+- Updated CHANGELOG.md with complete version history
+- Updated UPGRADING.md with v1.3.3 upgrade notes
+
+**Note:** This is a patch release that corrects version numbering. No functional changes from v1.3.2.
+
+---
+
 ## [1.3.2] - 2025-10-29
 
 ### 🐛 Fixed
