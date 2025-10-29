@@ -459,7 +459,8 @@ class EmailNotifier(NotificationProvider):
                          previous_ips: Dict[str, Optional[str]], 
                          geo_data: Optional[Dict[str, Any]], 
                          is_first_run: bool,
-                         server_name: str) -> str:
+                         server_name: str,
+                         version: str = "1.3.2") -> str:
         """Build HTML email content"""
         
         # Determine colors and title
@@ -726,7 +727,8 @@ class EmailNotifier(NotificationProvider):
                          previous_ips: Dict[str, Optional[str]], 
                          geo_data: Optional[Dict[str, Any]], 
                          is_first_run: bool,
-                         server_name: str) -> str:
+                         server_name: str,
+                         version: str = "1.3.2") -> str:
         """Build plain text email content"""
         
         lines = [
@@ -819,11 +821,11 @@ class EmailNotifier(NotificationProvider):
             msg['Date'] = datetime.now().strftime('%a, %d %b %Y %H:%M:%S %z')
             
             # Add plain text version
-            text_content = self._build_text_email(current_ips, previous_ips, geo_data, is_first_run, server_name)
+            text_content = self._build_text_email(current_ips, previous_ips, geo_data, is_first_run, server_name, version)
             msg.attach(MIMEText(text_content, 'plain', 'utf-8'))
             
             # Add HTML version
-            html_content = self._build_html_email(current_ips, previous_ips, geo_data, is_first_run, server_name)
+            html_content = self._build_html_email(current_ips, previous_ips, geo_data, is_first_run, server_name, version)
             msg.attach(MIMEText(html_content, 'html', 'utf-8'))
             
             # Send email
