@@ -21,6 +21,100 @@ docker-compose up -d
 
 # Or if using docker run:
 docker run -d --name wanwatcher \
+## 🆕 Upgrading to v1.3.2 (from v1.3.1)
+
+**Release Date:** October 29, 2025  
+**Type:** Patch/Documentation Fix Release  
+**Breaking Changes:** None  
+**Downtime:** ~1 minute
+
+### What's New
+- Fixed email variable names in README.md
+- Fixed hardcoded version strings in notifications
+- Updated wanwatcher.py for consistency
+
+### Required Changes
+
+#### 1. Update Email Variable Names (If Using Email)
+
+If you configured email using README.md examples from v1.3.1, **you must update your variable names**:
+
+**In your `docker-compose.yml` or Docker run command:**
+
+**WRONG (from old README):**
+```yaml
+environment:
+  EMAIL_SMTP_SERVER: "smtp.gmail.com"     # ❌ WRONG - doesn't work!
+  EMAIL_USERNAME: "user@gmail.com"        # ❌ WRONG - doesn't work!
+  EMAIL_PASSWORD: "your_password"         # ❌ WRONG - doesn't work!
+```
+
+**CORRECT (use these):**
+```yaml
+environment:
+  EMAIL_SMTP_HOST: "smtp.gmail.com"       # ✅ CORRECT
+  EMAIL_SMTP_USER: "user@gmail.com"       # ✅ CORRECT
+  EMAIL_SMTP_PASSWORD: "your_password"    # ✅ CORRECT
+```
+
+**Why:** The README had wrong variable names. The Docker code always expected the correct names (EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD).
+
+### Step-by-Step Upgrade
+
+```bash
+# 1. Pull new image
+docker-compose pull
+
+# Or for specific version:
+docker pull noxied/wanwatcher:1.3.2
+
+# 2. If using email, edit docker-compose.yml
+nano docker-compose.yml
+
+# Change these lines (if present):
+#   EMAIL_SMTP_SERVER → EMAIL_SMTP_HOST
+#   EMAIL_USERNAME → EMAIL_SMTP_USER  
+#   EMAIL_PASSWORD → EMAIL_SMTP_PASSWORD
+
+# 3. Restart container
+docker-compose down
+docker-compose up -d
+
+# 4. Verify in logs
+docker-compose logs -f wanwatcher
+
+# Look for:
+# "WANwatcher v1.3.2 Docker started"
+# "Email: Configured ✓" (if using email)
+# Notifications now show "v1.3.2"
+```
+
+### Verification
+
+After upgrading, check:
+- ✅ Version shows as "WANwatcher v1.3.2" in logs
+- ✅ Email shows "Configured ✓" (if enabled)
+- ✅ Notifications display "v1.3.2" in all platforms
+- ✅ No errors in logs
+
+### Troubleshooting v1.3.2
+
+**Problem:** Email still not working after variable name fix
+
+**Solution:**
+1. Verify all variable names are correct (EMAIL_SMTP_HOST, not EMAIL_SMTP_SERVER)
+2. Check logs: `docker logs wanwatcher | grep -i email`
+3. See TROUBLESHOOTING.md email section for detailed help
+
+**Problem:** Notifications still show "v1.3.1"
+
+**Solution:**
+1. Verify image version: `docker inspect wanwatcher | grep "Image"`
+2. Should show `noxied/wanwatcher:1.3.2`
+3. If not, pull and restart: `docker-compose pull && docker-compose up -d`
+
+---
+
   --restart unless-stopped \
   -v ./data:/data \
   -v ./logs:/logs \

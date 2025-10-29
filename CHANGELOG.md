@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.2] - 2025-10-29
+
+### 🐛 Fixed
+- **CRITICAL - Documentation:** Fixed email variable names in README.md (18 instances)
+  - Corrected `EMAIL_SMTP_SERVER` → `EMAIL_SMTP_HOST`
+  - Corrected `EMAIL_USERNAME` → `EMAIL_SMTP_USER`
+  - Corrected `EMAIL_PASSWORD` → `EMAIL_SMTP_PASSWORD`
+  - These corrections fix email configuration issues for users following README examples
+- **CRITICAL - Version Display:** Fixed hardcoded version strings in notification templates
+  - All notifications now dynamically display the current version
+  - Prevents version mismatch confusion (e.g., showing v1.3.1 after upgrading to v1.3.2)
+  - Updated notifications.py to accept version parameter instead of hardcoding
+- **Consistency:** Updated wanwatcher.py (non-Docker) to use consistent variable names
+  - Changed `ENABLE_EMAIL` → `EMAIL_ENABLED`
+  - Changed `ENABLE_TELEGRAM` → `TELEGRAM_ENABLED`
+  - Changed `ENABLE_DISCORD` → `DISCORD_ENABLED`
+  - Changed `SMTP_*` variables → `EMAIL_SMTP_*` variables
+  - Ensures consistency between Docker and non-Docker versions
+
+### 📝 Documentation
+- **README.md:** Corrected all email configuration examples throughout the document
+- **TROUBLESHOOTING.md:** Added comprehensive email/SMTP troubleshooting section
+  - Gmail app password setup guide
+  - Common SMTP configuration issues
+  - Port and TLS/SSL configuration examples
+  - Variable name corrections guide
+- **UPGRADING.md:** Added v1.3.2 upgrade notes and migration instructions
+- **CHANGELOG.md:** Complete version history documentation
+
+### ⚠️ Migration from v1.3.1
+
+If you configured email following README.md examples from v1.3.1 or earlier, update your configuration:
+
+**Old (incorrect) variable names:**
+```yaml
+EMAIL_SMTP_SERVER: "smtp.gmail.com"     # ❌ Wrong
+EMAIL_USERNAME: "user@example.com"      # ❌ Wrong  
+EMAIL_PASSWORD: "password"              # ❌ Wrong
+```
+
+**New (correct) variable names:**
+```yaml
+EMAIL_SMTP_HOST: "smtp.gmail.com"       # ✅ Correct
+EMAIL_SMTP_USER: "user@example.com"     # ✅ Correct
+EMAIL_SMTP_PASSWORD: "password"         # ✅ Correct
+```
+
+**Note:** Docker images are functionally identical to v1.3.1. Only documentation corrections and version display improvements included.
+
+---
+
 ## [1.3.1] - 2025-10-28
 
 ### 🐛 Bug Fixes

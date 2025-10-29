@@ -356,6 +356,78 @@ curl -X POST \
 
 ---
 
+
+---
+
+## 📧 Email/SMTP Issues
+
+### Email Notifications Not Working
+
+**Check configuration:**
+```bash
+docker logs wanwatcher | grep -i email
+```
+
+**Look for:**
+- `Email: Configured ✓` - Working!
+- `Email: Enabled but missing SMTP configuration ✗` - Configuration error
+- `Email: Not enabled` - EMAIL_ENABLED not set to true
+
+### Common Issues
+
+#### 1. Wrong Variable Names (README v1.3.1 and earlier)
+
+**Problem:** Following old README examples with incorrect variable names
+
+**Symptoms:**
+```
+Email: Enabled but missing SMTP configuration ✗
+```
+
+**Solution - Use CORRECT variable names:**
+```yaml
+EMAIL_ENABLED: "true"
+EMAIL_SMTP_HOST: "smtp.gmail.com"
+EMAIL_SMTP_USER: "user@example.com"
+EMAIL_SMTP_PASSWORD: "your_password"
+EMAIL_FROM: "from@example.com"
+EMAIL_TO: "to@example.com"
+```
+
+#### 2. Gmail App Password Required
+
+**Error:** Username and Password not accepted
+
+**Solution:**
+1. Go to Google Account Security
+2. Enable 2-Step Verification
+3. Generate App Password
+4. Use the 16-character app password as EMAIL_SMTP_PASSWORD
+
+#### 3. Port/TLS Configuration
+
+**Gmail:**
+```yaml
+EMAIL_SMTP_HOST: "smtp.gmail.com"
+EMAIL_SMTP_PORT: "587"
+EMAIL_USE_TLS: "true"
+```
+
+**Outlook:**
+```yaml
+EMAIL_SMTP_HOST: "smtp-mail.outlook.com"
+EMAIL_SMTP_PORT: "587"
+EMAIL_USE_TLS: "true"
+```
+
+#### 4. Testing Email
+
+```bash
+# Delete database to trigger notification
+docker exec wanwatcher rm /data/ipinfo.db
+docker restart wanwatcher
+```
+
 ## 🌐 IP Detection Issues
 
 ### "Failed to retrieve IP from all services"
