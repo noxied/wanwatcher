@@ -14,30 +14,30 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 
 # Version
-VERSION = "1.3.0"
+VERSION = "1.3.2"
 
 # Configuration from environment variables
 SERVER_NAME = os.getenv('SERVER_NAME', 'Server')
 CHECK_INTERVAL = int(os.getenv('CHECK_INTERVAL', '900'))  # 15 minutes default
 
 # Email configuration
-ENABLE_EMAIL = os.getenv('ENABLE_EMAIL', 'false').lower() == 'true'
-SMTP_SERVER = os.getenv('SMTP_SERVER', '')
-SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
-SMTP_USERNAME = os.getenv('SMTP_USERNAME', '')
-SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
+EMAIL_ENABLED = os.getenv('EMAIL_ENABLED', 'false').lower() == 'true'
+EMAIL_SMTP_HOST = os.getenv('EMAIL_SMTP_HOST', '')
+EMAIL_SMTP_PORT = int(os.getenv('EMAIL_SMTP_PORT', '587'))
+EMAIL_SMTP_USER = os.getenv('EMAIL_SMTP_USER', '')
+EMAIL_SMTP_PASSWORD = os.getenv('EMAIL_SMTP_PASSWORD', '')
 EMAIL_FROM = os.getenv('EMAIL_FROM', '')
 EMAIL_TO = os.getenv('EMAIL_TO', '')
 
 # Telegram configuration
-ENABLE_TELEGRAM = os.getenv('ENABLE_TELEGRAM', 'false').lower() == 'true'
+TELEGRAM_ENABLED = os.getenv('TELEGRAM_ENABLED', 'false').lower() == 'true'
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID', ''
 
 )
 
 # Discord configuration
-ENABLE_DISCORD = os.getenv('ENABLE_DISCORD', 'false').lower() == 'true'
+DISCORD_ENABLED = os.getenv('DISCORD_ENABLED', 'false').lower() == 'true'
 DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL', '')
 
 # State file
@@ -89,12 +89,12 @@ def write_last_ip(ip):
 
 def send_email(subject, body):
     """Send email notification"""
-    if not ENABLE_EMAIL:
+    if not EMAIL_ENABLED:
         return
     
     # Check if all required email settings are configured
-    if not all([SMTP_SERVER, SMTP_USERNAME, SMTP_PASSWORD, EMAIL_FROM, EMAIL_TO]):
-        logging.error("Email enabled but missing required configuration (SMTP_SERVER, SMTP_USERNAME, SMTP_PASSWORD, EMAIL_FROM, or EMAIL_TO)")
+    if not all([EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD, EMAIL_FROM, EMAIL_TO]):
+        logging.error("Email enabled but missing required configuration (EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD, EMAIL_FROM, or EMAIL_TO)")
         return
     
     try:
@@ -105,9 +105,9 @@ def send_email(subject, body):
         
         msg.attach(MIMEText(body, 'plain'))
         
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server = smtplib.SMTP(EMAIL_SMTP_HOST, EMAIL_SMTP_PORT)
         server.starttls()
-        server.login(SMTP_USERNAME, SMTP_PASSWORD)
+        server.login(EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD)
         server.send_message(msg)
         server.quit()
         
@@ -117,7 +117,7 @@ def send_email(subject, body):
 
 def send_telegram(message):
     """Send Telegram notification"""
-    if not ENABLE_TELEGRAM:
+    if not TELEGRAM_ENABLED:
         return
     
     # Check if all required telegram settings are configured
@@ -142,7 +142,7 @@ def send_telegram(message):
 
 def send_discord(old_ip, new_ip):
     """Send Discord notification"""
-    if not ENABLE_DISCORD:
+    if not DISCORD_ENABLED:
         return
     
     # Check if webhook URL is configured
@@ -202,7 +202,7 @@ def send_notifications(old_ip, new_ip):
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
     # Email
-    if ENABLE_EMAIL:
+    if EMAIL_ENABLED:
         subject = f"WAN IP Changed - {SERVER_NAME}"
         body = f"""
 WAN IP Address Change Notification
@@ -217,7 +217,7 @@ This is an automated notification from WANwatcher.
         send_email(subject, body)
     
     # Telegram
-    if ENABLE_TELEGRAM:
+    if TELEGRAM_ENABLED:
         message = f"""
 🌐 <b>WAN IP Changed</b>
 
@@ -229,7 +229,7 @@ This is an automated notification from WANwatcher.
         send_telegram(message)
     
     # Discord
-    if ENABLE_DISCORD:
+    if DISCORD_ENABLED:
         send_discord(old_ip, new_ip)
 
 def main():
@@ -243,21 +243,21 @@ def main():
     enabled_methods = []
     
     # Check Email configuration
-    if ENABLE_EMAIL and all([SMTP_SERVER, SMTP_USERNAME, SMTP_PASSWORD, EMAIL_FROM, EMAIL_TO]):
+    if EMAIL_ENABLED and all([EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD, EMAIL_FROM, EMAIL_TO]):
         enabled_methods.append("Email")
-    elif ENABLE_EMAIL:
+    elif EMAIL_ENABLED:
         logging.warning("Email is enabled but not fully configured (missing SMTP settings)")
     
     # Check Telegram configuration  
-    if ENABLE_TELEGRAM and all([TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID]):
+    if TELEGRAM_ENABLED and all([TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID]):
         enabled_methods.append("Telegram")
-    elif ENABLE_TELEGRAM:
+    elif TELEGRAM_ENABLED:
         logging.warning("Telegram is enabled but not fully configured (missing BOT_TOKEN or CHAT_ID)")
     
     # Check Discord configuration
-    if ENABLE_DISCORD and DISCORD_WEBHOOK_URL:
+    if DISCORD_ENABLED and DISCORD_WEBHOOK_URL:
         enabled_methods.append("Discord")
-    elif ENABLE_DISCORD:
+    elif DISCORD_ENABLED:
         logging.warning("Discord is enabled but not fully configured (missing WEBHOOK_URL)")
     
     if enabled_methods:

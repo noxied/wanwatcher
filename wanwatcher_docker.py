@@ -27,7 +27,7 @@ from datetime import datetime
 from notifications import NotificationManager, DiscordNotifier, TelegramNotifier, EmailNotifier
 
 # Version
-VERSION = "1.3.1"
+VERSION = "1.3.2"
 
 # ============================================================================
 # CONFIGURATION - Loaded from Environment Variables
@@ -407,7 +407,7 @@ def send_update_notification(update_info):
         logging.info(f"Sending update notification for v{update_info['latest_version']}")
         
         # Notify via all configured platforms
-        results = notification_manager.notify_update(update_info, SERVER_NAME)
+        results = notification_manager.notify_update(update_info, SERVER_NAME, VERSION)
         
         # Log results
         for provider, success in results.items():
@@ -451,7 +451,7 @@ def check_ip():
         if is_first_run:
             logging.info("First run detected - sending initial notification")
             notification_manager.notify_all(
-                current_ips, previous_ips, geo_data, True, SERVER_NAME
+                current_ips, previous_ips, geo_data, True, SERVER_NAME, VERSION
             )
             save_current_ips(current_ips['ipv4'], current_ips['ipv6'])
             
@@ -467,7 +467,7 @@ def check_ip():
                 logging.warning(f"  {msg}")
             
             notification_manager.notify_all(
-                current_ips, previous_ips, geo_data, False, SERVER_NAME
+                current_ips, previous_ips, geo_data, False, SERVER_NAME, VERSION
             )
             save_current_ips(current_ips['ipv4'], current_ips['ipv6'])
             

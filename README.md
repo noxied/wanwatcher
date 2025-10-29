@@ -94,7 +94,7 @@ Choose at least one notification platform:
      
      # Email Configuration
      EMAIL_ENABLED: "false"                     # Set to "true" to enable
-     EMAIL_SMTP_SERVER: ""
+     EMAIL_SMTP_HOST: ""
      EMAIL_SMTP_PORT: "587"
      
      # General Settings
@@ -146,10 +146,10 @@ docker run -d \
 **For Email, add:**
 ```bash
   -e EMAIL_ENABLED="true" \
-  -e EMAIL_SMTP_SERVER="smtp.gmail.com" \
+  -e EMAIL_SMTP_HOST="smtp.gmail.com" \
   -e EMAIL_SMTP_PORT="587" \
-  -e EMAIL_USERNAME="your_email@gmail.com" \
-  -e EMAIL_PASSWORD="your_app_password" \
+  -e EMAIL_SMTP_USER="your_email@gmail.com" \
+  -e EMAIL_SMTP_PASSWORD="your_app_password" \
   -e EMAIL_FROM="your_email@gmail.com" \
   -e EMAIL_TO="recipient@example.com" \
 ```
@@ -183,11 +183,11 @@ See [UPGRADING.md](UPGRADING.md) for detailed instructions on upgrading from pre
 | `TELEGRAM_PARSE_MODE` | No | `HTML` | Message format: `HTML` or `Markdown` |
 | **Email Settings** | | | |
 | `EMAIL_ENABLED` | No | `false` | Enable email notifications |
-| `EMAIL_SMTP_SERVER` | No* | - | SMTP server address (e.g., smtp.gmail.com) |
+| `EMAIL_SMTP_HOST` | No* | - | SMTP server address (e.g., smtp.gmail.com) |
 | `EMAIL_SMTP_PORT` | No | `587` | SMTP server port |
 | `EMAIL_USE_TLS` | No | `true` | Use TLS encryption |
-| `EMAIL_USERNAME` | No* | - | SMTP username |
-| `EMAIL_PASSWORD` | No* | - | SMTP password or app-specific password |
+| `EMAIL_SMTP_USER` | No* | - | SMTP username |
+| `EMAIL_SMTP_PASSWORD` | No* | - | SMTP password or app-specific password |
 | `EMAIL_FROM` | No* | - | Sender email address |
 | `EMAIL_TO` | No* | - | Recipient email address |
 | **General Settings** | | | |
@@ -227,9 +227,9 @@ environment:
   DISCORD_ENABLED: "false"
   TELEGRAM_ENABLED: "false"
   EMAIL_ENABLED: "true"
-  EMAIL_SMTP_SERVER: "smtp.gmail.com"
-  EMAIL_USERNAME: "your_email@gmail.com"
-  EMAIL_PASSWORD: "your_app_password"
+  EMAIL_SMTP_HOST: "smtp.gmail.com"
+  EMAIL_SMTP_USER: "your_email@gmail.com"
+  EMAIL_SMTP_PASSWORD: "your_app_password"
   EMAIL_FROM: "your_email@gmail.com"
   EMAIL_TO: "recipient@example.com"
 ```
@@ -243,9 +243,9 @@ environment:
   TELEGRAM_BOT_TOKEN: "123456789:ABC..."
   TELEGRAM_CHAT_ID: "123456789"
   EMAIL_ENABLED: "true"
-  EMAIL_SMTP_SERVER: "smtp.gmail.com"
-  EMAIL_USERNAME: "your_email@gmail.com"
-  EMAIL_PASSWORD: "your_app_password"
+  EMAIL_SMTP_HOST: "smtp.gmail.com"
+  EMAIL_SMTP_USER: "your_email@gmail.com"
+  EMAIL_SMTP_PASSWORD: "your_app_password"
   EMAIL_FROM: "your_email@gmail.com"
   EMAIL_TO: "recipient@example.com"
 ```
@@ -318,10 +318,10 @@ environment:
 3. **Configure WANwatcher:**
    ```yaml
    EMAIL_ENABLED: "true"
-   EMAIL_SMTP_SERVER: "smtp.gmail.com"
+   EMAIL_SMTP_HOST: "smtp.gmail.com"
    EMAIL_SMTP_PORT: "587"
-   EMAIL_USERNAME: "your_email@gmail.com"
-   EMAIL_PASSWORD: "your_16_char_app_password"
+   EMAIL_SMTP_USER: "your_email@gmail.com"
+   EMAIL_SMTP_PASSWORD: "your_16_char_app_password"
    EMAIL_FROM: "your_email@gmail.com"
    EMAIL_TO: "recipient@example.com"
    ```
@@ -330,19 +330,19 @@ environment:
 
 **Outlook/Hotmail:**
 ```yaml
-EMAIL_SMTP_SERVER: "smtp-mail.outlook.com"
+EMAIL_SMTP_HOST: "smtp-mail.outlook.com"
 EMAIL_SMTP_PORT: "587"
 ```
 
 **Yahoo Mail:**
 ```yaml
-EMAIL_SMTP_SERVER: "smtp.mail.yahoo.com"
+EMAIL_SMTP_HOST: "smtp.mail.yahoo.com"
 EMAIL_SMTP_PORT: "587"
 ```
 
 **Custom SMTP:**
 ```yaml
-EMAIL_SMTP_SERVER: "mail.example.com"
+EMAIL_SMTP_HOST: "mail.example.com"
 EMAIL_SMTP_PORT: "587"
 EMAIL_USE_TLS: "true"
 ```

@@ -1,5 +1,5 @@
 """
-WANwatcher Notification Providers v1.3.1
+WANwatcher Notification Providers v1.3.2
 Supports Discord, Telegram, and Email notifications
 """
 
@@ -28,7 +28,7 @@ class NotificationProvider:
         """Send notification - to be implemented by subclasses"""
         raise NotImplementedError
     
-    def send_update_notification(self, update_info: Dict[str, str], server_name: str) -> bool:
+    def send_update_notification(self, update_info: Dict[str, str], server_name: str, version: str = "1.3.2") -> bool:
         """Send update notification - to be implemented by subclasses"""
         raise NotImplementedError
 
@@ -135,7 +135,7 @@ class DiscordNotifier(NotificationProvider):
             
             fields.append({
                 "name": "📦 Version",
-                "value": "v1.3.1",
+                "value": f"v{version}",
                 "inline": True
             })
             
@@ -148,7 +148,7 @@ class DiscordNotifier(NotificationProvider):
                     "color": color,
                     "fields": fields,
                     "footer": {
-                        "text": f"WANwatcher v1.3.1 on {server_name}"
+                        "text": f"WANwatcher v{version} on {server_name}"
                     },
                     "timestamp": datetime.utcnow().isoformat()
                 }]
@@ -178,7 +178,7 @@ class DiscordNotifier(NotificationProvider):
             logger.error(f"Failed to send Discord notification: {e}")
             return False
     
-    def send_update_notification(self, update_info: Dict[str, str], server_name: str) -> bool:
+    def send_update_notification(self, update_info: Dict[str, str], server_name: str, version: str = "1.3.2") -> bool:
         """Send Discord update notification"""
         try:
             # Extract changelog highlights (first few bullet points)
@@ -349,7 +349,7 @@ class TelegramNotifier(NotificationProvider):
             message_lines.extend([
                 f"<b>⏰ Detected At:</b> {datetime.now().strftime('%A, %B %d, %Y at %H:%M:%S')}",
                 f"<b>🐳 Environment:</b> Running in Docker",
-                f"<b>📦 Version:</b> v1.3.1"
+                f"<b>📦 Version:</b> v{version}"
             ])
             
             message = "\n".join(message_lines)
@@ -374,7 +374,7 @@ class TelegramNotifier(NotificationProvider):
             logger.error(f"Failed to send Telegram notification: {e}")
             return False
     
-    def send_update_notification(self, update_info: Dict[str, str], server_name: str) -> bool:
+    def send_update_notification(self, update_info: Dict[str, str], server_name: str, version: str = "1.3.2") -> bool:
         """Send Telegram update notification"""
         try:
             # Extract changelog highlights
@@ -692,7 +692,7 @@ class EmailNotifier(NotificationProvider):
             </tr>
             <tr>
                 <td>Version:</td>
-                <td>📦 v1.3.1</td>
+                <td>📦 v{version}</td>
             </tr>
         </table>
         
@@ -700,7 +700,7 @@ class EmailNotifier(NotificationProvider):
         
         <div class="footer">
             <p style="margin: 0 0 12px 0;">
-                <span class="badge">🐳 WANwatcher v1.3.1</span>
+                <span class="badge">🐳 WANwatcher v{version}</span>
                 <span class="badge">📍 {server_name}</span>
             </p>
             <p style="margin: 0; font-size: 14px;">
@@ -782,10 +782,10 @@ class EmailNotifier(NotificationProvider):
             f"Server: {server_name}",
             f"Detected: {datetime.now().strftime('%A, %B %d, %Y at %H:%M:%S')}",
             f"Environment: Docker",
-            f"Version: v1.3.1",
+            f"Version: v{version}",
             "",
             "=" * 60,
-            f"WANwatcher v1.3.1 on {server_name}",
+            f"WANwatcher v{version} on {server_name}",
             "=" * 60
         ])
         
@@ -842,7 +842,7 @@ class EmailNotifier(NotificationProvider):
             logger.error(f"Failed to send email notification: {e}")
             return False
     
-    def send_update_notification(self, update_info: Dict[str, str], server_name: str) -> bool:
+    def send_update_notification(self, update_info: Dict[str, str], server_name: str, version: str = "1.3.2") -> bool:
         """Send email update notification"""
         try:
             subject = f"{self.subject_prefix} Update Available: v{update_info['latest_version']}"
@@ -933,7 +933,7 @@ docker restart wanwatcher
         </div>
         <div class="footer">
             <p style="margin: 0 0 12px 0;">
-                <span class="badge">🐳 WANwatcher v1.3.1</span>
+                <span class="badge">🐳 WANwatcher v{version}</span>
                 <span class="badge">📍 {server_name}</span>
             </p>
             <p style="margin: 0; font-size: 14px;">
@@ -994,7 +994,8 @@ class NotificationManager:
                    previous_ips: Dict[str, Optional[str]], 
                    geo_data: Optional[Dict[str, Any]], 
                    is_first_run: bool,
-                   server_name: str) -> Dict[str, bool]:
+                   server_name: str,
+                   version: str = "1.3.2") -> Dict[str, bool]:
         """Send notification to all configured providers"""
         results = {}
         
@@ -1002,7 +1003,7 @@ class NotificationManager:
             provider_name = provider.__class__.__name__
             try:
                 success = provider.send_notification(
-                    current_ips, previous_ips, geo_data, is_first_run, server_name
+                    current_ips, previous_ips, geo_data, is_first_run, server_name, version
                 )
                 results[provider_name] = success
             except Exception as e:
@@ -1011,14 +1012,14 @@ class NotificationManager:
         
         return results
     
-    def notify_update(self, update_info: Dict[str, str], server_name: str) -> Dict[str, bool]:
+    def notify_update(self, update_info: Dict[str, str], server_name: str, version: str = "1.3.2") -> Dict[str, bool]:
         """Send update notification to all configured providers"""
         results = {}
         
         for provider in self.providers:
             provider_name = provider.__class__.__name__
             try:
-                success = provider.send_update_notification(update_info, server_name)
+                success = provider.send_update_notification(update_info, server_name, version)
                 results[provider_name] = success
             except Exception as e:
                 logger.error(f"Provider {provider_name} update notification failed: {e}")
@@ -1027,9 +1028,9 @@ class NotificationManager:
         return results
     
     # Alias for backward compatibility
-    def notify_all(self, current_ips, previous_ips, geo_data, is_first_run, server_name):
+    def notify_all(self, current_ips, previous_ips, geo_data, is_first_run, server_name, version="1.3.2"):
         """Alias for send_to_all"""
-        return self.send_to_all(current_ips, previous_ips, geo_data, is_first_run, server_name)
+        return self.send_to_all(current_ips, previous_ips, geo_data, is_first_run, server_name, version)
     
     def notify_error(self, error_msg: str, server_name: str):
         """Notify about errors (placeholder - can be implemented if needed)"""
