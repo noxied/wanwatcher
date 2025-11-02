@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 💬 General Discussion
+    url: https://github.com/noxied/wanwatcher/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: 📚 Documentation
+    url: https://github.com/noxied/wanwatcher#readme
+    about: Check the documentation for guides and examples
+  - name: 🐳 Docker Hub
+    url: https://hub.docker.com/r/noxied/wanwatcher
+    about: View Docker images and documentation
