@@ -1,5 +1,5 @@
 """
-WANwatcher Notification Providers v1.4.0
+WANwatcher Notification Providers v1.4.1
 Supports Discord, Telegram, and Email notifications
 """
 
