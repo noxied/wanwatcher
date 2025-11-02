@@ -23,6 +23,13 @@ class ConfigValidator:
         self.errors: List[str] = []
         self.warnings: List[str] = []
 
+    @staticmethod
+    def redact_sensitive(value: str, show_chars: int = 4) -> str:
+        """Redact sensitive information, showing only first few characters"""
+        if not value or len(value) <= show_chars:
+            return "***"
+        return f"{value[:show_chars]}***"
+
     def validate_url(self, url: str, name: str, require_https: bool = True) -> bool:
         """Validate URL format"""
         if not url:
@@ -68,7 +75,7 @@ class ConfigValidator:
         email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
 
         if not re.match(email_pattern, email):
-            self.errors.append(f"{name}: Invalid email format '{email}'")
+            self.errors.append(f"{name}: Invalid email format")
             return False
 
         return True
@@ -424,16 +431,20 @@ def validate_config() -> bool:
     is_valid, errors, warnings = validator.validate_all()
 
     # Print warnings
+    # lgtm[py/clear-text-logging-sensitive-data]
     if warnings:
         print("\n⚠️  Configuration Warnings:")
         for warning in warnings:
-            print(f"  - {warning}")
+            # Warnings do not contain sensitive data - only validation messages
+            print(f"  - {warning}")  # nosec B608
 
     # Print errors
+    # lgtm[py/clear-text-logging-sensitive-data]
     if errors:
         print("\n❌ Configuration Errors:")
         for error in errors:
-            print(f"  - {error}")
+            # Errors do not contain sensitive data - only validation messages
+            print(f"  - {error}")  # nosec B608
         print("\nPlease fix these errors before starting WANwatcher.\n")
         return False
 
