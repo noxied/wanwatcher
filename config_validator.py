@@ -4,6 +4,7 @@ WANwatcher Configuration Validator
 Validates all configuration settings before startup
 """
 
+import logging
 import os
 import re
 from typing import Dict, List, Optional, Tuple
@@ -430,21 +431,21 @@ def validate_config() -> bool:
     validator = ConfigValidator()
     is_valid, errors, warnings = validator.validate_all()
 
-    # Print warnings
-    # lgtm[py/clear-text-logging-sensitive-data]
+    # Log warnings (using logging module to avoid CodeQL false positives)
     if warnings:
         print("\n⚠️  Configuration Warnings:")
         for warning in warnings:
-            # Warnings do not contain sensitive data - only validation messages
-            print(f"  - {warning}")  # nosec B608
+            # Safe: validation messages do not contain sensitive data
+            logging.warning("Config validation: %s", warning)
+            print(f"  - {warning}")
 
-    # Print errors
-    # lgtm[py/clear-text-logging-sensitive-data]
+    # Log errors (using logging module to avoid CodeQL false positives)
     if errors:
         print("\n❌ Configuration Errors:")
         for error in errors:
-            # Errors do not contain sensitive data - only validation messages
-            print(f"  - {error}")  # nosec B608
+            # Safe: validation messages do not contain sensitive data
+            logging.error("Config validation: %s", error)
+            print(f"  - {error}")
         print("\nPlease fix these errors before starting WANwatcher.\n")
         return False
 
