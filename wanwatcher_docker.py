@@ -236,9 +236,9 @@ def get_current_ips() -> Tuple[Dict[str, Optional[str]], Optional[Dict[str, Any]
     Returns dict: {'ipv4': '...', 'ipv6': '...'}, geo_data
     """
     logging.info("Detecting IP addresses...")
-    
-    result = {'ipv4': None, 'ipv6': None}
-    geo_data = None
+
+    result: Dict[str, Optional[str]] = {'ipv4': None, 'ipv6': None}
+    geo_data: Optional[Dict[str, Any]] = None
     
     # Get IPv4 if enabled
     if MONITOR_IPV4:
@@ -384,7 +384,8 @@ def parse_version(version_str: str) -> Tuple[int, int, int]:
     try:
         # Remove 'v' prefix and split by '.'
         parts = version_str.lstrip('v').split('.')
-        return tuple(map(int, parts[:3]))  # Take only first 3 parts (major.minor.patch)
+        major, minor, patch = int(parts[0]), int(parts[1]), int(parts[2])
+        return (major, minor, patch)
     except:
         return (0, 0, 0)
 
