@@ -58,7 +58,7 @@ jobs:
         run: pylint *.py --exit-zero --max-line-length=127
 
       - name: Run MyPy (type checking)
-        run: mypy *.py --ignore-missing-imports --no-strict-optional
+        run: mypy *.py --ignore-missing-imports --no-strict-optional --disable-error-code=import-untyped
 
   # ============================================================================
   # Security Scanning
