@@ -31,7 +31,7 @@ docker run -d --name wanwatcher \
 
 ## 🎉 Upgrading to v1.4.0 (from v1.3.x)
 
-**Release Date:** January 30, 2025
+**Release Date:** November 2, 2025
 **Type:** Major Quality & Reliability Release
 **Breaking Changes:** None ✅
 **Downtime:** ~1 minute
