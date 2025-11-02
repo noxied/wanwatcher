@@ -29,8 +29,12 @@ from typing import Any, Dict, Optional, Tuple
 import requests
 
 from config_validator import validate_config
-from notifications import (DiscordNotifier, EmailNotifier, NotificationManager,
-                           TelegramNotifier)
+from notifications import (
+    DiscordNotifier,
+    EmailNotifier,
+    NotificationManager,
+    TelegramNotifier,
+)
 
 # Version
 VERSION = "1.4.1"
