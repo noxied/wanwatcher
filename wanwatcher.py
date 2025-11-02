@@ -4,14 +4,15 @@ WANwatcher - WAN IP Monitor with Multi-Platform Notifications
 Monitors WAN IP changes and sends notifications via Email, Telegram, and Discord
 """
 
-import os
-import time
-import requests
-import smtplib
 import logging
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import os
+import smtplib
+import time
 from datetime import datetime
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+import requests
 
 # Version
 VERSION = "1.4.0"
@@ -54,7 +55,7 @@ def get_wan_ip():
         'https://ifconfig.me/ip',
         'https://icanhazip.com'
     ]
-    
+
     for service in services:
         try:
             response = requests.get(service, timeout=10)
@@ -63,7 +64,7 @@ def get_wan_ip():
         except Exception as e:
             logging.warning(f"Failed to get IP from {service}: {e}")
             continue
-    
+
     raise Exception("Could not retrieve WAN IP from any service")
 
 def read_last_ip():
@@ -89,26 +90,26 @@ def send_email(subject, body):
     """Send email notification"""
     if not EMAIL_ENABLED:
         return
-    
+
     # Check if all required email settings are configured
     if not all([EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD, EMAIL_FROM, EMAIL_TO]):
         logging.error("Email enabled but missing required configuration (EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD, EMAIL_FROM, or EMAIL_TO)")
         return
-    
+
     try:
         msg = MIMEMultipart()
         msg['From'] = EMAIL_FROM
         msg['To'] = EMAIL_TO
         msg['Subject'] = subject
-        
+
         msg.attach(MIMEText(body, 'plain'))
-        
+
         server = smtplib.SMTP(EMAIL_SMTP_HOST, EMAIL_SMTP_PORT)
         server.starttls()
         server.login(EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD)
         server.send_message(msg)
         server.quit()
-        
+
         logging.info(f"Email notification sent successfully to {EMAIL_TO}")
     except Exception as e:
         logging.error(f"Email notification failed: {e}")
@@ -117,12 +118,12 @@ def send_telegram(message):
     """Send Telegram notification"""
     if not TELEGRAM_ENABLED:
         return
-    
+
     # Check if all required telegram settings are configured
     if not all([TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID]):
         logging.error("Telegram enabled but missing required configuration (TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID)")
         return
-    
+
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         payload = {
@@ -130,10 +131,10 @@ def send_telegram(message):
             'text': message,
             'parse_mode': 'HTML'
         }
-        
+
         response = requests.post(url, json=payload, timeout=10)
         response.raise_for_status()
-        
+
         logging.info("Telegram notification sent successfully")
     except Exception as e:
         logging.error(f"Telegram notification failed: {e}")
@@ -142,12 +143,12 @@ def send_discord(old_ip, new_ip):
     """Send Discord notification"""
     if not DISCORD_ENABLED:
         return
-    
+
     # Check if webhook URL is configured
     if not DISCORD_WEBHOOK_URL:
         logging.error("Discord enabled but missing DISCORD_WEBHOOK_URL")
         return
-    
+
     try:
         # Create embed with IP change information
         embed = {
@@ -176,7 +177,7 @@ def send_discord(old_ip, new_ip):
                 "text": f"WANwatcher v{VERSION}"
             }
         }
-        
+
         # Payload with embed
         payload = {
             "embeds": [embed],
@@ -184,21 +185,21 @@ def send_discord(old_ip, new_ip):
             # Using the wan_watcher.png from the GitHub repository
             "avatar_url": "https://raw.githubusercontent.com/noxied/wanwatcher/main/wan_watcher.png"
         }
-        
+
         response = requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=10)
-        
+
         if response.status_code in [200, 204]:
             logging.info("Discord notification sent successfully")
         else:
             logging.error(f"Discord notification failed (Status: {response.status_code}): {response.text}")
-    
+
     except Exception as e:
         logging.error(f"Discord notification failed: {e}")
 
 def send_notifications(old_ip, new_ip):
     """Send notifications through all enabled channels"""
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    
+
     # Email
     if EMAIL_ENABLED:
         subject = f"WAN IP Changed - {SERVER_NAME}"
@@ -213,7 +214,7 @@ Timestamp: {timestamp}
 This is an automated notification from WANwatcher.
 """
         send_email(subject, body)
-    
+
     # Telegram
     if TELEGRAM_ENABLED:
         message = f"""
@@ -225,7 +226,7 @@ This is an automated notification from WANwatcher.
 <b>Time:</b> {timestamp}
 """
         send_telegram(message)
-    
+
     # Discord
     if DISCORD_ENABLED:
         send_discord(old_ip, new_ip)
@@ -236,69 +237,69 @@ def main():
     logging.info(f"WANwatcher v{VERSION} Docker started")
     logging.info(f"Server Name: {SERVER_NAME}")
     logging.info(f"Check Interval: {CHECK_INTERVAL} seconds ({CHECK_INTERVAL // 60} minutes)")
-    
+
     # Log enabled notification methods with proper configuration checks
     enabled_methods = []
-    
+
     # Check Email configuration
     if EMAIL_ENABLED and all([EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD, EMAIL_FROM, EMAIL_TO]):
         enabled_methods.append("Email")
     elif EMAIL_ENABLED:
         logging.warning("Email is enabled but not fully configured (missing SMTP settings)")
-    
-    # Check Telegram configuration  
+
+    # Check Telegram configuration
     if TELEGRAM_ENABLED and all([TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID]):
         enabled_methods.append("Telegram")
     elif TELEGRAM_ENABLED:
         logging.warning("Telegram is enabled but not fully configured (missing BOT_TOKEN or CHAT_ID)")
-    
+
     # Check Discord configuration
     if DISCORD_ENABLED and DISCORD_WEBHOOK_URL:
         enabled_methods.append("Discord")
     elif DISCORD_ENABLED:
         logging.warning("Discord is enabled but not fully configured (missing WEBHOOK_URL)")
-    
+
     if enabled_methods:
         logging.info(f"Enabled notifications: {', '.join(enabled_methods)}")
     else:
         logging.warning("No notification methods enabled!")
-    
+
     logging.info("=" * 60)
-    
+
     # Initial check
     try:
         current_ip = get_wan_ip()
         last_ip = read_last_ip()
-        
+
         logging.info(f"Current WAN IP: {current_ip}")
-        
+
         if last_ip != current_ip:
             logging.info(f"IP changed from {last_ip} to {current_ip}")
             send_notifications(last_ip, current_ip)
             write_last_ip(current_ip)
         else:
             logging.info("IP unchanged")
-    
+
     except Exception as e:
         logging.error(f"Error during initial check: {e}")
-    
+
     # Continuous monitoring
     logging.info(f"Starting continuous monitoring (checking every {CHECK_INTERVAL} seconds)...")
-    
+
     while True:
         try:
             time.sleep(CHECK_INTERVAL)
-            
+
             current_ip = get_wan_ip()
             last_ip = read_last_ip()
-            
+
             if last_ip != current_ip:
                 logging.info(f"IP changed from {last_ip} to {current_ip}")
                 send_notifications(last_ip, current_ip)
                 write_last_ip(current_ip)
             else:
                 logging.info(f"IP check: {current_ip} (unchanged)")
-        
+
         except Exception as e:
             logging.error(f"Error during monitoring: {e}")
             time.sleep(60)  # Wait a minute before retrying
