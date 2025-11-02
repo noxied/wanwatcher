@@ -3,7 +3,7 @@
 WANwatcher Docker - WAN IP Address Monitor with Multi-Platform Notifications
 Docker-optimized version with continuous loop mode
 
-Version: 1.4.0
+Version: 1.4.1
 
 Features:
 - Automatic IP change detection
@@ -33,7 +33,7 @@ from notifications import (DiscordNotifier, EmailNotifier,
                             NotificationManager, TelegramNotifier)
 
 # Version
-VERSION = "1.4.0"
+VERSION = "1.4.1"
 
 # ============================================================================
 # CONFIGURATION - Loaded from Environment Variables

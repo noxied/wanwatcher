@@ -15,7 +15,7 @@ from email.mime.text import MIMEText
 import requests
 
 # Version
-VERSION = "1.4.0"
+VERSION = "1.4.1"
 
 # Configuration from environment variables
 SERVER_NAME = os.getenv('SERVER_NAME', 'Server')
