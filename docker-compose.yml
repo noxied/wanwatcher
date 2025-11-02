@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  wanwatcher:
+    image: noxied/wanwatcher:1.4.0
+    container_name: wanwatcher
+    restart: unless-stopped
+    
+    environment:
+      # ===========================================
+      # Discord Configuration
+      # ===========================================
+      DISCORD_ENABLED: "false"         # Set to "true" to enable Discord notifications
+      DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/YOUR_WEBHOOK_URL"
+      # Optional: Custom avatar URL for Discord webhook
+      # If not set, uses default embedded avatar (wan_watcher.png)
+      DISCORD_AVATAR_URL: ""
+      
+      # ===========================================
+      # Telegram Configuration (v1.2.0+)
+      # ===========================================
+      TELEGRAM_ENABLED: "false"
+      TELEGRAM_BOT_TOKEN: ""           # Get from @BotFather
+      TELEGRAM_CHAT_ID: ""             # Your Telegram chat ID
+      TELEGRAM_PARSE_MODE: "HTML"      # HTML or Markdown
+      
+      # ===========================================
+      # Email Configuration (v1.3.0+)
+      # ===========================================
+      EMAIL_ENABLED: "false"
+      EMAIL_SMTP_HOST: "smtp.gmail.com"
+      EMAIL_SMTP_PORT: "587"           # 587 for TLS, 465 for SSL
+      EMAIL_SMTP_USER: ""              # SMTP username (usually your email)
+      EMAIL_SMTP_PASSWORD: ""          # SMTP password or app password
+      EMAIL_FROM: ""                   # From email address
+      EMAIL_TO: ""                     # To email address (comma-separated for multiple)
+      EMAIL_USE_TLS: "true"            # Use TLS (recommended)
+      EMAIL_USE_SSL: "false"           # Use SSL (alternative to TLS)
+      EMAIL_SUBJECT_PREFIX: "[WANwatcher]"
+      
+      # ===========================================
+      # Update Check Configuration (v1.3.0+)
+      # ===========================================
+      UPDATE_CHECK_ENABLED: "true"     # Enable update notifications
+      UPDATE_CHECK_INTERVAL: "86400"   # Check every 24 hours (in seconds)
+      UPDATE_CHECK_ON_STARTUP: "true"  # Check for updates on container startup
+      
+      # ===========================================
+      # Server Configuration
+      # ===========================================
+      SERVER_NAME: "My Server"
+      BOT_NAME: "WANwatcher"
+      CHECK_INTERVAL: "900"            # Check every 900 seconds (15 minutes)
+      
+      # ===========================================
+      # Geographic Data (Optional)
+      # ===========================================
+      IPINFO_TOKEN: ""                 # Get free token from ipinfo.io
+      
+      # ===========================================
+      # IP Monitoring
+      # ===========================================
+      MONITOR_IPV4: "true"
+      MONITOR_IPV6: "true"
+    
+    volumes:
+      # Persistent data storage
+      - ./data:/data
+      - ./logs:/logs
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import os; exit(0 if os.path.exists('/data/ipinfo.db') else 1)"]
+      interval: 5m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    # Resource limits (adjust as needed)
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ===========================================
+# Network Configuration (Optional)
+# ===========================================
+# Uncomment to use custom network
+# networks:
+#   monitoring:
+#     driver: bridge

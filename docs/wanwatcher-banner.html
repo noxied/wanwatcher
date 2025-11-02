@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1280, height=320">
+    <title>WANwatcher Banner - Multi-Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            width: 1280px;
+            height: 320px;
+            overflow: hidden;
+        }
+        
+        .banner {
+            width: 1280px;
+            height: 320px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f1419 100%);
+            display: flex;
+            align-items: center;
+            padding: 0 60px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Animated background pattern */
+        .banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(90deg, 
+                    transparent, 
+                    transparent 50px, 
+                    rgba(14, 165, 233, 0.03) 50px, 
+                    rgba(14, 165, 233, 0.03) 51px
+                ),
+                repeating-linear-gradient(0deg, 
+                    transparent, 
+                    transparent 50px, 
+                    rgba(14, 165, 233, 0.03) 50px, 
+                    rgba(14, 165, 233, 0.03) 51px
+                );
+            z-index: 0;
+        }
+        
+        .content {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .icon-container {
+            width: 180px;
+            height: 180px;
+            background: linear-gradient(135deg, #0ea5e9 0%, #8b5cf6 100%);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 20px 60px rgba(14, 165, 233, 0.3);
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        .icon-container::before {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            background: #1a1a2e;
+            border-radius: 27px;
+        }
+        
+        .icon {
+            width: 140px;
+            height: 140px;
+            border-radius: 20px;
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+        }
+        
+        .icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .text-content {
+            flex: 1;
+        }
+        
+        .title {
+            font-family: 'Arial Black', 'Arial Bold', Arial, sans-serif;
+            font-size: 72px;
+            font-weight: 900;
+            color: #ffffff;
+            letter-spacing: -2px;
+            margin-bottom: 10px;
+            text-shadow: 0 4px 20px rgba(14, 165, 233, 0.4);
+        }
+        
+        .subtitle {
+            font-family: Arial, sans-serif;
+            font-size: 28px;
+            font-weight: 400;
+            color: #94a3b8;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 8px 16px;
+            background: rgba(14, 165, 233, 0.15);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            border-radius: 20px;
+            color: #0ea5e9;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+        
+        /* Decorative elements */
+        .decoration {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.08) 0%, transparent 70%);
+        }
+        
+        .decoration.top-right {
+            top: -200px;
+            right: -100px;
+        }
+        
+        .decoration.bottom-left {
+            bottom: -200px;
+            left: 200px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.06) 0%, transparent 70%);
+        }
+    </style>
+</head>
+<body>
+    <div class="banner">
+        <div class="decoration top-right"></div>
+        <div class="decoration bottom-left"></div>
+        
+        <div class="content">
+            <div class="icon-container">
+                <div class="icon">
+                    <img src="wan_watcher.png" alt="WANwatcher Icon">
+                </div>
+            </div>
+            
+            <div class="text-content">
+                <div class="title">WANwatcher</div>
+                <div class="subtitle">WAN IP Monitoring with Multi-Platform Notifications</div>
+                <div class="badge">🐳 Docker Ready • ⚡ Lightweight • 🏠 Perfect for Homelabs</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Instructions for creating the banner
+        console.log('To create the banner image:');
+        console.log('1. Open this HTML file in a browser');
+        console.log('2. Make sure wan_watcher.png is in the same folder');
+        console.log('3. Take a screenshot of the banner (1280x320px)');
+        console.log('4. Or use browser dev tools to screenshot the .banner element');
+        console.log('5. Save as wanwatcher-banner.png');
+        console.log('');
+        console.log('The banner now says "Multi-Platform Notifications" instead of "Discord Notifications"');
+    </script>
+</body>
+</html>

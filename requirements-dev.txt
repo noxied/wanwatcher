@@ -1,0 +1,21 @@
+# Development Dependencies for WANwatcher
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.1
+
+# Code Quality
+black>=23.7.0
+isort>=5.12.0
+flake8>=6.1.0
+pylint>=2.17.0
+mypy>=1.5.0
+
+# Security
+bandit>=1.7.5
+safety>=2.3.5
+
+# Runtime dependencies (also needed for tests)
+requests>=2.31.0
+ipinfo>=4.4.3
