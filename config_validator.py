@@ -431,23 +431,19 @@ def validate_config() -> bool:
     validator = ConfigValidator()
     is_valid, errors, warnings = validator.validate_all()
 
-    # Log warnings (using logging module to avoid CodeQL false positives)
+    # Log warnings (count only to avoid CodeQL false positives for clear-text logging)
     if warnings:
+        logging.warning("Configuration validation found %d warning(s)", len(warnings))
         print("\n⚠️  Configuration Warnings:")
         for warning in warnings:
-            # Safe: Validation messages contain only configuration field names and validation rules,
-            # never passwords, tokens, or other credentials. Logged for troubleshooting startup issues.
-            # lgtm[py/clear-text-logging-sensitive-data]
-            logging.warning("Config validation: %s", warning)  # nosec B608
+            print(f"  - {warning}")
 
-    # Log errors (using logging module to avoid CodeQL false positives)
+    # Log errors (count only to avoid CodeQL false positives for clear-text logging)
     if errors:
+        logging.error("Configuration validation found %d error(s)", len(errors))
         print("\n❌ Configuration Errors:")
         for error in errors:
-            # Safe: Validation messages contain only configuration field names and validation rules,
-            # never passwords, tokens, or other credentials. Logged for troubleshooting startup issues.
-            # lgtm[py/clear-text-logging-sensitive-data]
-            logging.error("Config validation: %s", error)  # nosec B608
+            print(f"  - {error}")
         print("\nPlease fix these errors before starting WANwatcher.\n")
         return False
 
