@@ -5,7 +5,7 @@ class Handler:
     def __init__(self, access_token):
         self.access_token = access_token
         self.base_url = "https://ipinfo.io"
-    
+
     def getDetails(self, ip=None):
         url = f"{self.base_url}/{ip if ip else ''}"
         headers = {"Authorization": f"Bearer {self.access_token}"}
