@@ -4,9 +4,9 @@ WANwatcher Configuration Validator
 Validates all configuration settings before startup
 """
 
-import re
 import os
-from typing import Dict, List, Tuple, Optional
+import re
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 
