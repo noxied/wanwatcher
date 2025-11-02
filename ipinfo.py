@@ -1,5 +1,7 @@
 """Minimal ipinfo module for WANwatcher Docker"""
+
 import requests
+
 
 class Handler:
     def __init__(self, access_token):
@@ -13,15 +15,17 @@ class Handler:
         data = response.json()
         return Details(data)
 
+
 class Details:
     def __init__(self, data):
-        self.ip = data.get('ip')
-        self.city = data.get('city')
-        self.region = data.get('region')
-        self.country = data.get('country')
-        self.country_name = data.get('country_name', data.get('country'))
-        self.org = data.get('org')
-        self.timezone = data.get('timezone')
+        self.ip = data.get("ip")
+        self.city = data.get("city")
+        self.region = data.get("region")
+        self.country = data.get("country")
+        self.country_name = data.get("country_name", data.get("country"))
+        self.org = data.get("org")
+        self.timezone = data.get("timezone")
+
 
 def getHandler(access_token):
     return Handler(access_token)
