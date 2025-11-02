@@ -37,18 +37,25 @@ Perfect for homelabs, remote access, dynamic DNS monitoring, and more! 🏠
 - 🧪 **Tested & Validated** - 109+ unit tests with CI/CD pipeline (v1.4.0)
 - 📝 **Type Hints** - Full type annotations for better code quality (v1.4.0)
 
-## 🆕 What's New in v1.4.0
+## 🆕 What's New in v1.4.1
+
+- ✅ **Python 3.14** - Latest Python with JIT compiler for better performance
+- ✅ **Code Quality Improvements** - Fixed 65+ linting issues, standardized formatting
+- ✅ **Security Enhancements** - Resolved 8 CodeQL security alerts, added workflow permissions
+- ✅ **CI/CD Improvements** - All checks passing (Black, isort, MyPy with type stubs)
+- ✅ **Smaller Docker Image** - Optimized from 51MB to 49MB
+- ✅ **Enhanced Testing** - Now testing across Python 3.10, 3.11, 3.12, 3.13, and 3.14
+
+### v1.4.0 Highlights
 
 - ✅ **Configuration Validator** - Comprehensive validation before startup with clear error messages
 - ✅ **Notification Retry Logic** - Automatic retry with exponential backoff (3 attempts: 1s, 2s, 4s)
 - ✅ **Enhanced IPv6 Validation** - Proper format checking, filters special-use addresses
 - ✅ **Unit Test Suite** - 109+ test cases with pytest and coverage reporting
-- ✅ **CI/CD Pipeline** - GitHub Actions with linting, security scanning, multi-arch builds
 - ✅ **Type Hints** - Full type annotations throughout codebase
-- ✅ **Critical Bug Fix** - Fixed syntax error in standalone version
 - ✅ **Multi-Architecture** - Automated AMD64 and ARM64 Docker builds
 
-See [CHANGELOG.md](CHANGELOG.md) for full version history and [RELEASE_NOTES_v1.4.0.md](RELEASE_NOTES_v1.4.0.md) for detailed information.
+See [CHANGELOG.md](CHANGELOG.md) for full version history.
 
 ## 🚀 Quick Start
 
