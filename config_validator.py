@@ -105,7 +105,8 @@ class ConfigValidator:
             return False
 
         # Telegram token format: 123456789:ABCdefGHIjklMNOpqrsTUVwxyz
-        token_pattern = r'^\d{8,10}:[A-Za-z0-9_-]{35}$'
+        # Token part is typically 35 chars but can vary (allow 30-50)
+        token_pattern = r'^\d{8,10}:[A-Za-z0-9_-]{30,50}$'
 
         if not re.match(token_pattern, token):
             self.errors.append("TELEGRAM_BOT_TOKEN: Invalid format (should be like 123456789:ABCdefGHI...)")

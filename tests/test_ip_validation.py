@@ -22,16 +22,19 @@ class TestIPv6Validation:
     """Test IPv6 address validation"""
 
     def test_valid_ipv6_full(self):
-        """Test valid full IPv6 address"""
-        assert is_valid_ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
+        """Test valid full IPv6 address - using real public IPv6"""
+        # Using Google's public DNS IPv6
+        assert is_valid_ipv6("2001:4860:4860:0000:0000:0000:0000:8888")
 
     def test_valid_ipv6_compressed(self):
-        """Test valid compressed IPv6 address"""
-        assert is_valid_ipv6("2001:db8::8a2e:370:7334")
+        """Test valid compressed IPv6 address - using real public IPv6"""
+        # Using Cloudflare's public DNS IPv6
+        assert is_valid_ipv6("2606:4700:4700::1111")
 
     def test_valid_ipv6_short(self):
-        """Test valid short IPv6 address"""
-        assert is_valid_ipv6("2001:db8::1")
+        """Test valid short IPv6 address - using real public IPv6"""
+        # Using Cloudflare's alternate DNS IPv6
+        assert is_valid_ipv6("2606:4700:4700::1001")
 
     def test_invalid_ipv6_loopback(self):
         """Test rejection of loopback address"""
