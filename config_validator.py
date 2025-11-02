@@ -435,17 +435,15 @@ def validate_config() -> bool:
     if warnings:
         print("\n⚠️  Configuration Warnings:")
         for warning in warnings:
-            # Safe: validation messages do not contain sensitive data
+            # Using logging module - validation messages do not contain sensitive data
             logging.warning("Config validation: %s", warning)
-            print(f"  - {warning}")
 
     # Log errors (using logging module to avoid CodeQL false positives)
     if errors:
         print("\n❌ Configuration Errors:")
         for error in errors:
-            # Safe: validation messages do not contain sensitive data
+            # Using logging module - validation messages do not contain sensitive data
             logging.error("Config validation: %s", error)
-            print(f"  - {error}")
         print("\nPlease fix these errors before starting WANwatcher.\n")
         return False
 
