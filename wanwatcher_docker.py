@@ -29,8 +29,12 @@ from typing import Any, Dict, Optional, Tuple
 import requests
 
 from config_validator import validate_config
-from notifications import (DiscordNotifier, EmailNotifier,
-                            NotificationManager, TelegramNotifier)
+from notifications import (
+    DiscordNotifier,
+    EmailNotifier,
+    NotificationManager,
+    TelegramNotifier,
+)
 
 # Version
 VERSION = "1.4.1"
@@ -40,50 +44,55 @@ VERSION = "1.4.1"
 # ============================================================================
 
 # Discord Configuration
-DISCORD_ENABLED = os.environ.get('DISCORD_ENABLED', 'false').lower() == 'true'
-DISCORD_WEBHOOK_URL = os.environ.get('DISCORD_WEBHOOK_URL', '')
-DISCORD_AVATAR_URL = os.environ.get('DISCORD_AVATAR_URL', '')
+DISCORD_ENABLED = os.environ.get("DISCORD_ENABLED", "false").lower() == "true"
+DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "")
+DISCORD_AVATAR_URL = os.environ.get("DISCORD_AVATAR_URL", "")
 
 # Telegram Configuration
-TELEGRAM_ENABLED = os.environ.get('TELEGRAM_ENABLED', 'false').lower() == 'true'
-TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
-TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '')
-TELEGRAM_PARSE_MODE = os.environ.get('TELEGRAM_PARSE_MODE', 'HTML')
+TELEGRAM_ENABLED = os.environ.get("TELEGRAM_ENABLED", "false").lower() == "true"
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
+TELEGRAM_PARSE_MODE = os.environ.get("TELEGRAM_PARSE_MODE", "HTML")
 
 # Email Configuration
-EMAIL_ENABLED = os.environ.get('EMAIL_ENABLED', 'false').lower() == 'true'
-EMAIL_SMTP_HOST = os.environ.get('EMAIL_SMTP_HOST', '')
-EMAIL_SMTP_PORT = os.environ.get('EMAIL_SMTP_PORT', '587')
-EMAIL_SMTP_USER = os.environ.get('EMAIL_SMTP_USER', '')
-EMAIL_SMTP_PASSWORD = os.environ.get('EMAIL_SMTP_PASSWORD', '')
-EMAIL_FROM = os.environ.get('EMAIL_FROM', '')
-EMAIL_TO = os.environ.get('EMAIL_TO', '')
-EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() == 'true'
-EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'false').lower() == 'true'
-EMAIL_SUBJECT_PREFIX = os.environ.get('EMAIL_SUBJECT_PREFIX', '[WANwatcher]')
+EMAIL_ENABLED = os.environ.get("EMAIL_ENABLED", "false").lower() == "true"
+EMAIL_SMTP_HOST = os.environ.get("EMAIL_SMTP_HOST", "")
+EMAIL_SMTP_PORT = os.environ.get("EMAIL_SMTP_PORT", "587")
+EMAIL_SMTP_USER = os.environ.get("EMAIL_SMTP_USER", "")
+EMAIL_SMTP_PASSWORD = os.environ.get("EMAIL_SMTP_PASSWORD", "")
+EMAIL_FROM = os.environ.get("EMAIL_FROM", "")
+EMAIL_TO = os.environ.get("EMAIL_TO", "")
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true").lower() == "true"
+EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "false").lower() == "true"
+EMAIL_SUBJECT_PREFIX = os.environ.get("EMAIL_SUBJECT_PREFIX", "[WANwatcher]")
 
 # General Configuration
-IPINFO_TOKEN = os.environ.get('IPINFO_TOKEN', '')
-IP_DB_FILE = os.environ.get('IP_DB_FILE', '/data/ipinfo.db')
-LOG_FILE = os.environ.get('LOG_FILE', '/logs/wanwatcher.log')
-BOT_NAME = os.environ.get('BOT_NAME', 'WANwatcher')
-SERVER_NAME = os.environ.get('SERVER_NAME', 'WANwatcher Docker')
-CHECK_INTERVAL = int(os.environ.get('CHECK_INTERVAL', '900'))  # Default: 15 minutes
+IPINFO_TOKEN = os.environ.get("IPINFO_TOKEN", "")
+IP_DB_FILE = os.environ.get("IP_DB_FILE", "/data/ipinfo.db")
+LOG_FILE = os.environ.get("LOG_FILE", "/logs/wanwatcher.log")
+BOT_NAME = os.environ.get("BOT_NAME", "WANwatcher")
+SERVER_NAME = os.environ.get("SERVER_NAME", "WANwatcher Docker")
+CHECK_INTERVAL = int(os.environ.get("CHECK_INTERVAL", "900"))  # Default: 15 minutes
 
 # IPv6 Configuration
-MONITOR_IPV4 = os.environ.get('MONITOR_IPV4', 'true').lower() == 'true'
-MONITOR_IPV6 = os.environ.get('MONITOR_IPV6', 'true').lower() == 'true'
+MONITOR_IPV4 = os.environ.get("MONITOR_IPV4", "true").lower() == "true"
+MONITOR_IPV6 = os.environ.get("MONITOR_IPV6", "true").lower() == "true"
 
 # Update Check Configuration
-UPDATE_CHECK_ENABLED = os.environ.get('UPDATE_CHECK_ENABLED', 'true').lower() == 'true'
-UPDATE_CHECK_INTERVAL = int(os.environ.get('UPDATE_CHECK_INTERVAL', '86400'))  # 24 hours
-UPDATE_CHECK_ON_STARTUP = os.environ.get('UPDATE_CHECK_ON_STARTUP', 'true').lower() == 'true'
+UPDATE_CHECK_ENABLED = os.environ.get("UPDATE_CHECK_ENABLED", "true").lower() == "true"
+UPDATE_CHECK_INTERVAL = int(
+    os.environ.get("UPDATE_CHECK_INTERVAL", "86400")
+)  # 24 hours
+UPDATE_CHECK_ON_STARTUP = (
+    os.environ.get("UPDATE_CHECK_ON_STARTUP", "true").lower() == "true"
+)
 GITHUB_API_URL = "https://api.github.com/repos/noxied/wanwatcher/releases/latest"
 UPDATE_NOTIFIED_FILE = "/data/update_notified.txt"
 
 # ============================================================================
 # Setup Logging
 # ============================================================================
+
 
 def setup_logging() -> None:
     """Configure logging to file and console"""
@@ -94,16 +103,15 @@ def setup_logging() -> None:
     # Configure logging with both file and console output
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(LOG_FILE),
-            logging.StreamHandler(sys.stdout)
-        ]
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        handlers=[logging.FileHandler(LOG_FILE), logging.StreamHandler(sys.stdout)],
     )
+
 
 # ============================================================================
 # IP Detection Functions
 # ============================================================================
+
 
 def get_ipv4_simple() -> Tuple[Optional[str], None]:
     """Get IPv4 address using simple services (no API key needed)"""
@@ -111,7 +119,7 @@ def get_ipv4_simple() -> Tuple[Optional[str], None]:
         "https://api.ipify.org?format=json",
         "https://ipapi.co/json",
         "https://ifconfig.me/all.json",
-        "https://api.myip.com"
+        "https://api.myip.com",
     ]
 
     for service in services:
@@ -122,9 +130,9 @@ def get_ipv4_simple() -> Tuple[Optional[str], None]:
             data = response.json()
 
             # Different services use different keys
-            ip = data.get('ip') or data.get('IPv4') or data.get('query')
+            ip = data.get("ip") or data.get("IPv4") or data.get("query")
 
-            if ip and '.' in ip:  # Simple IPv4 validation
+            if ip and "." in ip:  # Simple IPv4 validation
                 logging.debug(f"Successfully retrieved IPv4: {ip}")
                 return ip, None
         except Exception as e:
@@ -134,6 +142,7 @@ def get_ipv4_simple() -> Tuple[Optional[str], None]:
     logging.warning("Failed to retrieve IPv4 from all services")
     return None, None
 
+
 def get_ip_with_info() -> Tuple[Optional[str], Optional[Dict[str, Any]]]:
     """Get IPv4 with geographic information using ipinfo.io"""
     if not IPINFO_TOKEN:
@@ -141,15 +150,16 @@ def get_ip_with_info() -> Tuple[Optional[str], Optional[Dict[str, Any]]]:
 
     try:
         import ipinfo
+
         handler = ipinfo.getHandler(IPINFO_TOKEN)
         details = handler.getDetails()
 
         geo_data = {
-            'city': details.city,
-            'region': details.region,
-            'country': details.country_name,
-            'org': details.org,
-            'timezone': details.timezone
+            "city": details.city,
+            "region": details.region,
+            "country": details.country_name,
+            "org": details.org,
+            "timezone": details.timezone,
         }
 
         logging.debug(f"Retrieved IP with geo data: {details.ip}")
@@ -160,6 +170,7 @@ def get_ip_with_info() -> Tuple[Optional[str], Optional[Dict[str, Any]]]:
     except Exception as e:
         logging.warning(f"ipinfo.io failed: {e}, falling back to simple detection")
         return get_ipv4_simple()
+
 
 def is_valid_ipv6(ip_str: str) -> bool:
     """
@@ -201,9 +212,9 @@ def is_valid_ipv6(ip_str: str) -> bool:
 def get_ipv6() -> Optional[str]:
     """Get IPv6 address from multiple services with proper validation"""
     services = [
-        'https://api64.ipify.org?format=json',  # IPv6-specific service
-        'https://api6.ipify.org?format=json',   # Another IPv6 service
-        'https://v6.ident.me/.json',             # Alternative IPv6 service
+        "https://api64.ipify.org?format=json",  # IPv6-specific service
+        "https://api6.ipify.org?format=json",  # Another IPv6 service
+        "https://v6.ident.me/.json",  # Alternative IPv6 service
     ]
 
     for service in services:
@@ -214,7 +225,7 @@ def get_ipv6() -> Optional[str]:
 
             # Handle JSON response
             data = response.json()
-            ipv6 = data.get('ip', '') or data.get('address', '')
+            ipv6 = data.get("ip", "") or data.get("address", "")
 
             # Properly validate IPv6 address
             if ipv6 and is_valid_ipv6(ipv6):
@@ -233,6 +244,7 @@ def get_ipv6() -> Optional[str]:
     logging.warning("Failed to retrieve IPv6 from all services")
     return None
 
+
 def get_current_ips() -> Tuple[Dict[str, Optional[str]], Optional[Dict[str, Any]]]:
     """
     Get both IPv4 and IPv6 addresses based on configuration.
@@ -240,27 +252,29 @@ def get_current_ips() -> Tuple[Dict[str, Optional[str]], Optional[Dict[str, Any]
     """
     logging.info("Detecting IP addresses...")
 
-    result: Dict[str, Optional[str]] = {'ipv4': None, 'ipv6': None}
+    result: Dict[str, Optional[str]] = {"ipv4": None, "ipv6": None}
     geo_data: Optional[Dict[str, Any]] = None
 
     # Get IPv4 if enabled
     if MONITOR_IPV4:
-        result['ipv4'], geo_data = get_ip_with_info()
+        result["ipv4"], geo_data = get_ip_with_info()
     else:
         logging.info("IPv4 monitoring disabled")
 
     # Get IPv6 if enabled
     if MONITOR_IPV6:
-        result['ipv6'] = get_ipv6()
+        result["ipv6"] = get_ipv6()
     else:
         logging.info("IPv6 monitoring disabled")
 
     logging.info(f"Detection complete - IPv4: {result['ipv4']}, IPv6: {result['ipv6']}")
     return result, geo_data
 
+
 # ============================================================================
 # IP Storage Functions
 # ============================================================================
+
 
 def ensure_db_dir() -> None:
     """Ensure the database directory exists"""
@@ -269,6 +283,7 @@ def ensure_db_dir() -> None:
         os.makedirs(db_dir, exist_ok=True)
         logging.info(f"Created database directory: {db_dir}")
 
+
 def get_previous_ips() -> Dict[str, Optional[str]]:
     """
     Read previous IP addresses from database.
@@ -276,10 +291,10 @@ def get_previous_ips() -> Dict[str, Optional[str]]:
     """
     if not os.path.exists(IP_DB_FILE):
         logging.info("No previous IP database found (first run)")
-        return {'ipv4': None, 'ipv6': None}
+        return {"ipv4": None, "ipv6": None}
 
     try:
-        with open(IP_DB_FILE, 'r') as f:
+        with open(IP_DB_FILE, "r") as f:
             content = f.read().strip()
 
         # Try to parse as JSON (new format)
@@ -289,34 +304,28 @@ def get_previous_ips() -> Dict[str, Optional[str]]:
             # Handle old format that was converted to JSON string
             if isinstance(data, str):
                 logging.info("Converting old database format to new format")
-                return {'ipv4': data, 'ipv6': None}
+                return {"ipv4": data, "ipv6": None}
 
             # New format (dict with both IPs)
-            return {
-                'ipv4': data.get('ipv4'),
-                'ipv6': data.get('ipv6')
-            }
+            return {"ipv4": data.get("ipv4"), "ipv6": data.get("ipv6")}
         except json.JSONDecodeError:
             # Old format - plain text file with just IPv4
             logging.info("Converting legacy database format to new format")
-            return {'ipv4': content, 'ipv6': None}
+            return {"ipv4": content, "ipv6": None}
 
     except Exception as e:
         logging.error(f"Error reading IP database: {e}")
-        return {'ipv4': None, 'ipv6': None}
+        return {"ipv4": None, "ipv6": None}
+
 
 def save_current_ips(ipv4: Optional[str], ipv6: Optional[str]) -> None:
     """Save current IP addresses to database"""
     try:
         ensure_db_dir()
 
-        data = {
-            'ipv4': ipv4,
-            'ipv6': ipv6,
-            'last_updated': datetime.now().isoformat()
-        }
+        data = {"ipv4": ipv4, "ipv6": ipv6, "last_updated": datetime.now().isoformat()}
 
-        with open(IP_DB_FILE, 'w') as f:
+        with open(IP_DB_FILE, "w") as f:
             json.dump(data, f, indent=2)
 
         logging.debug(f"Saved IPs to database - IPv4: {ipv4}, IPv6: {ipv6}")
@@ -325,12 +334,14 @@ def save_current_ips(ipv4: Optional[str], ipv6: Optional[str]) -> None:
         logging.error(f"Error saving IP database: {e}")
         raise
 
+
 # ============================================================================
 # Notification Setup
 # ============================================================================
 
 # Initialize notification manager (global)
 notification_manager = NotificationManager()
+
 
 def initialize_notifications() -> None:
     """Initialize all configured notification providers"""
@@ -345,18 +356,24 @@ def initialize_notifications() -> None:
 
     # Add Telegram if configured
     if TELEGRAM_ENABLED and TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
-        telegram = TelegramNotifier(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TELEGRAM_PARSE_MODE)
+        telegram = TelegramNotifier(
+            TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TELEGRAM_PARSE_MODE
+        )
         notification_manager.add_provider(telegram)
         logging.info("Telegram notifications enabled")
     elif TELEGRAM_ENABLED and (not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID):
         logging.warning("Telegram enabled but BOT_TOKEN or CHAT_ID not configured")
 
     # Add Email if configured
-    if EMAIL_ENABLED and all([EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD, EMAIL_FROM, EMAIL_TO]):
+    if EMAIL_ENABLED and all(
+        [EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD, EMAIL_FROM, EMAIL_TO]
+    ):
         try:
             email_port = int(EMAIL_SMTP_PORT)
         except ValueError:
-            logging.error(f"Invalid EMAIL_SMTP_PORT: {EMAIL_SMTP_PORT}, using default 587")
+            logging.error(
+                f"Invalid EMAIL_SMTP_PORT: {EMAIL_SMTP_PORT}, using default 587"
+            )
             email_port = 587
 
         email = EmailNotifier(
@@ -365,32 +382,37 @@ def initialize_notifications() -> None:
             smtp_user=EMAIL_SMTP_USER,
             smtp_password=EMAIL_SMTP_PASSWORD,
             from_addr=EMAIL_FROM,
-            to_addrs=EMAIL_TO.split(','),
+            to_addrs=EMAIL_TO.split(","),
             use_tls=EMAIL_USE_TLS,
             use_ssl=EMAIL_USE_SSL,
-            subject_prefix=EMAIL_SUBJECT_PREFIX
+            subject_prefix=EMAIL_SUBJECT_PREFIX,
         )
         notification_manager.add_provider(email)
         logging.info("Email notifications enabled")
     elif EMAIL_ENABLED:
-        logging.warning("Email enabled but missing required configuration (SMTP_HOST, SMTP_USER, SMTP_PASSWORD, FROM, or TO)")
+        logging.warning(
+            "Email enabled but missing required configuration (SMTP_HOST, SMTP_USER, SMTP_PASSWORD, FROM, or TO)"
+        )
 
     if not notification_manager.providers:
         logging.warning("No notification providers configured!")
+
 
 # ============================================================================
 # Update Check Functions
 # ============================================================================
 
+
 def parse_version(version_str: str) -> Tuple[int, int, int]:
     """Parse version string to comparable tuple"""
     try:
         # Remove 'v' prefix and split by '.'
-        parts = version_str.lstrip('v').split('.')
+        parts = version_str.lstrip("v").split(".")
         major, minor, patch = int(parts[0]), int(parts[1]), int(parts[2])
         return (major, minor, patch)
     except:
         return (0, 0, 0)
+
 
 def check_for_updates() -> Optional[Dict[str, str]]:
     """Check GitHub for newer version"""
@@ -405,16 +427,18 @@ def check_for_updates() -> Optional[Dict[str, str]]:
         response.raise_for_status()
         release_data = response.json()
 
-        latest_version = release_data.get('tag_name', '').lstrip('v')
-        current_version = VERSION.lstrip('v')
+        latest_version = release_data.get("tag_name", "").lstrip("v")
+        current_version = VERSION.lstrip("v")
 
         # Compare versions
         if parse_version(latest_version) > parse_version(current_version):
-            logging.info(f"New version available: v{latest_version} (current: v{current_version})")
+            logging.info(
+                f"New version available: v{latest_version} (current: v{current_version})"
+            )
 
             # Check if we already notified about this version
             if os.path.exists(UPDATE_NOTIFIED_FILE):
-                with open(UPDATE_NOTIFIED_FILE, 'r') as f:
+                with open(UPDATE_NOTIFIED_FILE, "r") as f:
                     notified_version = f.read().strip()
                     if notified_version == latest_version:
                         logging.info("Already notified about this version")
@@ -422,12 +446,12 @@ def check_for_updates() -> Optional[Dict[str, str]]:
 
             # Return update info
             return {
-                'current_version': current_version,
-                'latest_version': latest_version,
-                'release_name': release_data.get('name', ''),
-                'release_url': release_data.get('html_url', ''),
-                'release_body': release_data.get('body', ''),
-                'published_at': release_data.get('published_at', '')
+                "current_version": current_version,
+                "latest_version": latest_version,
+                "release_name": release_data.get("name", ""),
+                "release_url": release_data.get("html_url", ""),
+                "release_body": release_data.get("body", ""),
+                "published_at": release_data.get("published_at", ""),
             }
         else:
             logging.info("WANwatcher is up to date")
@@ -437,19 +461,23 @@ def check_for_updates() -> Optional[Dict[str, str]]:
         logging.warning(f"Failed to check for updates: {e}")
         return None
 
+
 def mark_update_notified(version: str) -> None:
     """Mark that we notified about this version"""
     try:
-        with open(UPDATE_NOTIFIED_FILE, 'w') as f:
+        with open(UPDATE_NOTIFIED_FILE, "w") as f:
             f.write(version)
         logging.debug(f"Marked update v{version} as notified")
     except Exception as e:
         logging.error(f"Failed to save update notification state: {e}")
 
+
 def send_update_notification(update_info: Dict[str, str]) -> None:
     """Send update notification to all platforms"""
     try:
-        logging.info(f"Sending update notification for v{update_info['latest_version']}")
+        logging.info(
+            f"Sending update notification for v{update_info['latest_version']}"
+        )
 
         # Notify via all configured platforms
         results = notification_manager.notify_update(update_info, SERVER_NAME, VERSION)
@@ -463,14 +491,16 @@ def send_update_notification(update_info: Dict[str, str]) -> None:
 
         # Mark as notified if at least one succeeded
         if any(results.values()):
-            mark_update_notified(update_info['latest_version'])
+            mark_update_notified(update_info["latest_version"])
 
     except Exception as e:
         logging.error(f"Failed to send update notification: {e}")
 
+
 # ============================================================================
 # Main Check Function
 # ============================================================================
+
 
 def check_ip() -> bool:
     """Perform single IP check"""
@@ -479,33 +509,39 @@ def check_ip() -> bool:
         current_ips, geo_data = get_current_ips()
 
         # Verify we got at least one IP
-        if not current_ips['ipv4'] and not current_ips['ipv6']:
+        if not current_ips["ipv4"] and not current_ips["ipv6"]:
             logging.error("Failed to retrieve any IP address!")
             raise Exception("No IP addresses detected")
 
-        logging.info(f"Current IPv4: {current_ips['ipv4']}, IPv6: {current_ips['ipv6']}")
+        logging.info(
+            f"Current IPv4: {current_ips['ipv4']}, IPv6: {current_ips['ipv6']}"
+        )
 
         # Get previous IPs
         previous_ips = get_previous_ips()
-        is_first_run = (previous_ips['ipv4'] is None and previous_ips['ipv6'] is None)
+        is_first_run = previous_ips["ipv4"] is None and previous_ips["ipv6"] is None
 
         # Check if anything changed
-        ipv4_changed = current_ips['ipv4'] != previous_ips['ipv4']
-        ipv6_changed = current_ips['ipv6'] != previous_ips['ipv6']
+        ipv4_changed = current_ips["ipv4"] != previous_ips["ipv4"]
+        ipv6_changed = current_ips["ipv6"] != previous_ips["ipv6"]
 
         if is_first_run:
             logging.info("First run detected - sending initial notification")
             notification_manager.notify_all(
                 current_ips, previous_ips, geo_data, True, SERVER_NAME, VERSION
             )
-            save_current_ips(current_ips['ipv4'], current_ips['ipv6'])
+            save_current_ips(current_ips["ipv4"], current_ips["ipv6"])
 
         elif ipv4_changed or ipv6_changed:
             change_msgs = []
             if ipv4_changed:
-                change_msgs.append(f"IPv4: {previous_ips['ipv4']} → {current_ips['ipv4']}")
+                change_msgs.append(
+                    f"IPv4: {previous_ips['ipv4']} → {current_ips['ipv4']}"
+                )
             if ipv6_changed:
-                change_msgs.append(f"IPv6: {previous_ips['ipv6']} → {current_ips['ipv6']}")
+                change_msgs.append(
+                    f"IPv6: {previous_ips['ipv6']} → {current_ips['ipv6']}"
+                )
 
             logging.warning("IP ADDRESS CHANGE DETECTED!")
             for msg in change_msgs:
@@ -514,7 +550,7 @@ def check_ip() -> bool:
             notification_manager.notify_all(
                 current_ips, previous_ips, geo_data, False, SERVER_NAME, VERSION
             )
-            save_current_ips(current_ips['ipv4'], current_ips['ipv6'])
+            save_current_ips(current_ips["ipv4"], current_ips["ipv6"])
 
         else:
             logging.info("No IP address changes detected")
@@ -527,9 +563,11 @@ def check_ip() -> bool:
         notification_manager.notify_error(error_msg, SERVER_NAME)
         return False
 
+
 # ============================================================================
 # Main Loop for Docker
 # ============================================================================
+
 
 def main() -> None:
     """Main execution function with continuous loop"""
@@ -538,7 +576,9 @@ def main() -> None:
     logging.info("=" * 60)
     logging.info(f"WANwatcher v{VERSION} Docker started")
     logging.info(f"Server Name: {SERVER_NAME}")
-    logging.info(f"Check Interval: {CHECK_INTERVAL} seconds ({CHECK_INTERVAL//60} minutes)")
+    logging.info(
+        f"Check Interval: {CHECK_INTERVAL} seconds ({CHECK_INTERVAL//60} minutes)"
+    )
     logging.info(f"IPv4 Monitoring: {'Enabled' if MONITOR_IPV4 else 'Disabled'}")
     logging.info(f"IPv6 Monitoring: {'Enabled' if MONITOR_IPV6 else 'Disabled'}")
     logging.info("=" * 60)
@@ -572,14 +612,18 @@ def main() -> None:
         logging.info(f"  Telegram: Not enabled")
 
     # Email status
-    if EMAIL_ENABLED and all([EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD, EMAIL_FROM, EMAIL_TO]):
+    if EMAIL_ENABLED and all(
+        [EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD, EMAIL_FROM, EMAIL_TO]
+    ):
         logging.info(f"  Email: Configured ✓")
     elif EMAIL_ENABLED:
         logging.warning(f"  Email: Enabled but missing SMTP configuration ✗")
     else:
         logging.info(f"  Email: Not enabled")
 
-    logging.info(f"  ipinfo.io: {'Configured' if IPINFO_TOKEN else 'Not configured (geo data disabled)'}")
+    logging.info(
+        f"  ipinfo.io: {'Configured' if IPINFO_TOKEN else 'Not configured (geo data disabled)'}"
+    )
     logging.info(f"  Update Check: {'Enabled' if UPDATE_CHECK_ENABLED else 'Disabled'}")
     logging.info("=" * 60)
 
@@ -588,8 +632,12 @@ def main() -> None:
         logging.error("FATAL: No notification providers configured!")
         logging.error("Please enable and configure at least one notification method:")
         logging.error("  - Discord: Set DISCORD_ENABLED=true and DISCORD_WEBHOOK_URL")
-        logging.error("  - Telegram: Set TELEGRAM_ENABLED=true, TELEGRAM_BOT_TOKEN, and TELEGRAM_CHAT_ID")
-        logging.error("  - Email: Set EMAIL_ENABLED=true and all required SMTP settings")
+        logging.error(
+            "  - Telegram: Set TELEGRAM_ENABLED=true, TELEGRAM_BOT_TOKEN, and TELEGRAM_CHAT_ID"
+        )
+        logging.error(
+            "  - Email: Set EMAIL_ENABLED=true and all required SMTP settings"
+        )
         sys.exit(1)
 
     if not MONITOR_IPV4 and not MONITOR_IPV6:
@@ -608,7 +656,9 @@ def main() -> None:
     check_ip()
 
     # Continuous monitoring loop
-    logging.info(f"Starting continuous monitoring (checking every {CHECK_INTERVAL} seconds)...")
+    logging.info(
+        f"Starting continuous monitoring (checking every {CHECK_INTERVAL} seconds)..."
+    )
 
     check_count = 0
     last_update_check = datetime.now()
@@ -623,9 +673,12 @@ def main() -> None:
             # Periodic update check
             if UPDATE_CHECK_ENABLED:
                 from datetime import timedelta
+
                 time_since_check = (datetime.now() - last_update_check).total_seconds()
                 if time_since_check >= UPDATE_CHECK_INTERVAL:
-                    logging.debug(f"Periodic update check (interval: {UPDATE_CHECK_INTERVAL}s)")
+                    logging.debug(
+                        f"Periodic update check (interval: {UPDATE_CHECK_INTERVAL}s)"
+                    )
                     update_info = check_for_updates()
                     if update_info:
                         send_update_notification(update_info)
@@ -639,6 +692,7 @@ def main() -> None:
             notification_manager.notify_error(f"Main loop error: {str(e)}", SERVER_NAME)
             # Wait a bit before retrying
             time.sleep(60)
+
 
 if __name__ == "__main__":
     main()

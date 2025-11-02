@@ -18,42 +18,42 @@ import requests
 VERSION = "1.4.1"
 
 # Configuration from environment variables
-SERVER_NAME = os.getenv('SERVER_NAME', 'Server')
-CHECK_INTERVAL = int(os.getenv('CHECK_INTERVAL', '900'))  # 15 minutes default
+SERVER_NAME = os.getenv("SERVER_NAME", "Server")
+CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", "900"))  # 15 minutes default
 
 # Email configuration
-EMAIL_ENABLED = os.getenv('EMAIL_ENABLED', 'false').lower() == 'true'
-EMAIL_SMTP_HOST = os.getenv('EMAIL_SMTP_HOST', '')
-EMAIL_SMTP_PORT = int(os.getenv('EMAIL_SMTP_PORT', '587'))
-EMAIL_SMTP_USER = os.getenv('EMAIL_SMTP_USER', '')
-EMAIL_SMTP_PASSWORD = os.getenv('EMAIL_SMTP_PASSWORD', '')
-EMAIL_FROM = os.getenv('EMAIL_FROM', '')
-EMAIL_TO = os.getenv('EMAIL_TO', '')
+EMAIL_ENABLED = os.getenv("EMAIL_ENABLED", "false").lower() == "true"
+EMAIL_SMTP_HOST = os.getenv("EMAIL_SMTP_HOST", "")
+EMAIL_SMTP_PORT = int(os.getenv("EMAIL_SMTP_PORT", "587"))
+EMAIL_SMTP_USER = os.getenv("EMAIL_SMTP_USER", "")
+EMAIL_SMTP_PASSWORD = os.getenv("EMAIL_SMTP_PASSWORD", "")
+EMAIL_FROM = os.getenv("EMAIL_FROM", "")
+EMAIL_TO = os.getenv("EMAIL_TO", "")
 
 # Telegram configuration
-TELEGRAM_ENABLED = os.getenv('TELEGRAM_ENABLED', 'false').lower() == 'true'
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')
-TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID', '')
+TELEGRAM_ENABLED = os.getenv("TELEGRAM_ENABLED", "false").lower() == "true"
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 
 # Discord configuration
-DISCORD_ENABLED = os.getenv('DISCORD_ENABLED', 'false').lower() == 'true'
-DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL', '')
+DISCORD_ENABLED = os.getenv("DISCORD_ENABLED", "false").lower() == "true"
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
 
 # State file
-STATE_FILE = '/data/last_ip.txt'
+STATE_FILE = "/data/last_ip.txt"
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
 
 def get_wan_ip():
     """Fetch current WAN IP address"""
     services = [
-        'https://api.ipify.org',
-        'https://ifconfig.me/ip',
-        'https://icanhazip.com'
+        "https://api.ipify.org",
+        "https://ifconfig.me/ip",
+        "https://icanhazip.com",
     ]
 
     for service in services:
@@ -67,24 +67,27 @@ def get_wan_ip():
 
     raise Exception("Could not retrieve WAN IP from any service")
 
+
 def read_last_ip():
     """Read the last known IP from state file"""
     try:
         if os.path.exists(STATE_FILE):
-            with open(STATE_FILE, 'r') as f:
+            with open(STATE_FILE, "r") as f:
                 return f.read().strip()
     except Exception as e:
         logging.error(f"Error reading state file: {e}")
     return None
 
+
 def write_last_ip(ip):
     """Write the current IP to state file"""
     try:
         os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
-        with open(STATE_FILE, 'w') as f:
+        with open(STATE_FILE, "w") as f:
             f.write(ip)
     except Exception as e:
         logging.error(f"Error writing state file: {e}")
+
 
 def send_email(subject, body):
     """Send email notification"""
@@ -92,17 +95,21 @@ def send_email(subject, body):
         return
 
     # Check if all required email settings are configured
-    if not all([EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD, EMAIL_FROM, EMAIL_TO]):
-        logging.error("Email enabled but missing required configuration (EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD, EMAIL_FROM, or EMAIL_TO)")
+    if not all(
+        [EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD, EMAIL_FROM, EMAIL_TO]
+    ):
+        logging.error(
+            "Email enabled but missing required configuration (EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD, EMAIL_FROM, or EMAIL_TO)"
+        )
         return
 
     try:
         msg = MIMEMultipart()
-        msg['From'] = EMAIL_FROM
-        msg['To'] = EMAIL_TO
-        msg['Subject'] = subject
+        msg["From"] = EMAIL_FROM
+        msg["To"] = EMAIL_TO
+        msg["Subject"] = subject
 
-        msg.attach(MIMEText(body, 'plain'))
+        msg.attach(MIMEText(body, "plain"))
 
         server = smtplib.SMTP(EMAIL_SMTP_HOST, EMAIL_SMTP_PORT)
         server.starttls()
@@ -114,6 +121,7 @@ def send_email(subject, body):
     except Exception as e:
         logging.error(f"Email notification failed: {e}")
 
+
 def send_telegram(message):
     """Send Telegram notification"""
     if not TELEGRAM_ENABLED:
@@ -121,16 +129,14 @@ def send_telegram(message):
 
     # Check if all required telegram settings are configured
     if not all([TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID]):
-        logging.error("Telegram enabled but missing required configuration (TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID)")
+        logging.error(
+            "Telegram enabled but missing required configuration (TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID)"
+        )
         return
 
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        payload = {
-            'chat_id': TELEGRAM_CHAT_ID,
-            'text': message,
-            'parse_mode': 'HTML'
-        }
+        payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "HTML"}
 
         response = requests.post(url, json=payload, timeout=10)
         response.raise_for_status()
@@ -138,6 +144,7 @@ def send_telegram(message):
         logging.info("Telegram notification sent successfully")
     except Exception as e:
         logging.error(f"Telegram notification failed: {e}")
+
 
 def send_discord(old_ip, new_ip):
     """Send Discord notification"""
@@ -159,23 +166,13 @@ def send_discord(old_ip, new_ip):
                 {
                     "name": "Previous IP",
                     "value": f"`{old_ip if old_ip else 'N/A'}`",
-                    "inline": True
+                    "inline": True,
                 },
-                {
-                    "name": "New IP",
-                    "value": f"`{new_ip}`",
-                    "inline": True
-                },
-                {
-                    "name": "Server",
-                    "value": SERVER_NAME,
-                    "inline": False
-                }
+                {"name": "New IP", "value": f"`{new_ip}`", "inline": True},
+                {"name": "Server", "value": SERVER_NAME, "inline": False},
             ],
             "timestamp": datetime.utcnow().isoformat(),
-            "footer": {
-                "text": f"WANwatcher v{VERSION}"
-            }
+            "footer": {"text": f"WANwatcher v{VERSION}"},
         }
 
         # Payload with embed
@@ -183,7 +180,7 @@ def send_discord(old_ip, new_ip):
             "embeds": [embed],
             "username": "WANwatcher",
             # Using the wan_watcher.png from the GitHub repository
-            "avatar_url": "https://raw.githubusercontent.com/noxied/wanwatcher/main/wan_watcher.png"
+            "avatar_url": "https://raw.githubusercontent.com/noxied/wanwatcher/main/wan_watcher.png",
         }
 
         response = requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=10)
@@ -191,14 +188,17 @@ def send_discord(old_ip, new_ip):
         if response.status_code in [200, 204]:
             logging.info("Discord notification sent successfully")
         else:
-            logging.error(f"Discord notification failed (Status: {response.status_code}): {response.text}")
+            logging.error(
+                f"Discord notification failed (Status: {response.status_code}): {response.text}"
+            )
 
     except Exception as e:
         logging.error(f"Discord notification failed: {e}")
 
+
 def send_notifications(old_ip, new_ip):
     """Send notifications through all enabled channels"""
-    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # Email
     if EMAIL_ENABLED:
@@ -231,33 +231,44 @@ This is an automated notification from WANwatcher.
     if DISCORD_ENABLED:
         send_discord(old_ip, new_ip)
 
+
 def main():
     """Main monitoring loop"""
     logging.info("=" * 60)
     logging.info(f"WANwatcher v{VERSION} Docker started")
     logging.info(f"Server Name: {SERVER_NAME}")
-    logging.info(f"Check Interval: {CHECK_INTERVAL} seconds ({CHECK_INTERVAL // 60} minutes)")
+    logging.info(
+        f"Check Interval: {CHECK_INTERVAL} seconds ({CHECK_INTERVAL // 60} minutes)"
+    )
 
     # Log enabled notification methods with proper configuration checks
     enabled_methods = []
 
     # Check Email configuration
-    if EMAIL_ENABLED and all([EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD, EMAIL_FROM, EMAIL_TO]):
+    if EMAIL_ENABLED and all(
+        [EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASSWORD, EMAIL_FROM, EMAIL_TO]
+    ):
         enabled_methods.append("Email")
     elif EMAIL_ENABLED:
-        logging.warning("Email is enabled but not fully configured (missing SMTP settings)")
+        logging.warning(
+            "Email is enabled but not fully configured (missing SMTP settings)"
+        )
 
     # Check Telegram configuration
     if TELEGRAM_ENABLED and all([TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID]):
         enabled_methods.append("Telegram")
     elif TELEGRAM_ENABLED:
-        logging.warning("Telegram is enabled but not fully configured (missing BOT_TOKEN or CHAT_ID)")
+        logging.warning(
+            "Telegram is enabled but not fully configured (missing BOT_TOKEN or CHAT_ID)"
+        )
 
     # Check Discord configuration
     if DISCORD_ENABLED and DISCORD_WEBHOOK_URL:
         enabled_methods.append("Discord")
     elif DISCORD_ENABLED:
-        logging.warning("Discord is enabled but not fully configured (missing WEBHOOK_URL)")
+        logging.warning(
+            "Discord is enabled but not fully configured (missing WEBHOOK_URL)"
+        )
 
     if enabled_methods:
         logging.info(f"Enabled notifications: {', '.join(enabled_methods)}")
@@ -284,7 +295,9 @@ def main():
         logging.error(f"Error during initial check: {e}")
 
     # Continuous monitoring
-    logging.info(f"Starting continuous monitoring (checking every {CHECK_INTERVAL} seconds)...")
+    logging.info(
+        f"Starting continuous monitoring (checking every {CHECK_INTERVAL} seconds)..."
+    )
 
     while True:
         try:
@@ -303,6 +316,7 @@ def main():
         except Exception as e:
             logging.error(f"Error during monitoring: {e}")
             time.sleep(60)  # Wait a minute before retrying
+
 
 if __name__ == "__main__":
     main()
