@@ -300,6 +300,62 @@ Besides IP change notifications, WANwatcher can send:
 - an outage notice after `OUTAGE_THRESHOLD` consecutive failed checks, and a recovery notice when connectivity returns (`OUTAGE_DETECTION_ENABLED`, on by default; the outage notice is delivered once the connection is back, since nothing can be sent during the outage)
 - an update notice when a new WANwatcher release is available (`UPDATE_CHECK_ENABLED`)
 
+## Volumes and ports
+
+| Mount | Purpose |
+|-------|---------|
+| `/data` | State file with the current IPs and change history (persistent) |
+| `/logs` | Log files |
+
+Both must be writable by uid 1000 (the user the container runs as). Port 8080
+only needs publishing when `API_ENABLED=true`.
+
+The image is built for `linux/amd64` and `linux/arm64`, so it runs on regular
+servers as well as a Raspberry Pi 4 or newer, Apple Silicon, and AWS Graviton.
+Docker pulls the right variant automatically.
+
+## Monitoring and logs
+
+Follow the logs:
+
+```bash
+docker logs -f wanwatcher
+```
+
+Check the container health (the image ships a healthcheck):
+
+```bash
+docker inspect --format='{{json .State.Health}}' wanwatcher
+```
+
+Read the current state directly:
+
+```bash
+docker exec wanwatcher cat /data/ipinfo.db
+```
+
+With `API_ENABLED=true` you can also poll `/api/status` and scrape `/metrics`
+(see the [Status API](#status-api) section).
+
+## Troubleshooting
+
+The container exits right after starting
+- Configuration validation failed. Run `docker logs wanwatcher` and read the validation errors. Common causes are no notifier enabled, an invalid webhook URL, or a missing required variable.
+
+Permission denied on `/data` or `/logs` (after upgrading to 2.0)
+- The container runs as uid 1000. Fix the host directories with `sudo chown -R 1000:1000 ./data ./logs`.
+
+Notifications are not arriving
+- Failed sends are retried three times with backoff. Check `docker logs wanwatcher | grep -i "notification\|retry"` and confirm the credentials.
+
+IPv6 is never detected
+- Confirm the host actually has IPv6 connectivity and that `MONITOR_IPV6="true"`.
+
+DNS records are not updating
+- Confirm `DDNS_ENABLED=true`, the provider is spelled correctly, and the token or credentials are valid. The logs show the result of each update attempt.
+
+The full guide is in [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+
 ## Upgrading from 1.x
 
 All v1 environment variables keep working and the state file is migrated automatically. The one breaking change: the container now runs as uid 1000, so your `/data` and `/logs` volumes must be writable by that user (`sudo chown -R 1000:1000 ./data ./logs`). See [UPGRADING.md](UPGRADING.md) for details.
