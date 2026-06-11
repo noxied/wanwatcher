@@ -1,0 +1,4 @@
+# Runtime dependencies for WANwatcher
+requests==2.34.2
+apprise==1.11.0
+paho-mqtt==2.1.0

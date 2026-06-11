@@ -20,5 +20,4 @@ bandit>=1.7.5
 safety>=2.3.5
 
 # Runtime dependencies (also needed for tests)
-requests>=2.31.0
-ipinfo>=4.4.3
+-r requirements.txt
