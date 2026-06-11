@@ -177,14 +177,16 @@ class ConfigValidator:
 
         ok = True
 
-        required_fields = {
-            "EMAIL_SMTP_HOST": email.smtp_host,
-            "EMAIL_SMTP_USER": email.smtp_user,
-            "EMAIL_SMTP_PASSWORD": email.smtp_password,
-            "EMAIL_FROM": email.from_addr,
-        }
-        for field_name, field_value in required_fields.items():
-            if not field_value:
+        # Reduce each field to a presence boolean immediately so a secret value
+        # (the SMTP password) never enters a structure we later iterate over.
+        required_present = (
+            ("EMAIL_SMTP_HOST", bool(email.smtp_host)),
+            ("EMAIL_SMTP_USER", bool(email.smtp_user)),
+            ("EMAIL_SMTP_PASSWORD", bool(email.smtp_password)),
+            ("EMAIL_FROM", bool(email.from_addr)),
+        )
+        for field_name, present in required_present:
+            if not present:
                 self.errors.append(f"EMAIL_ENABLED is true but {field_name} is not set")
                 ok = False
 
