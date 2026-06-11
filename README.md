@@ -4,7 +4,7 @@
 
 # WANwatcher
 
-**🌐 Professional WAN IP monitoring with multi-platform notifications**
+Monitors your WAN IPv4/IPv6 addresses and tells you when they change.
 
 [![Docker Hub](https://img.shields.io/docker/v/noxied/wanwatcher?label=Docker%20Hub&logo=docker)](https://hub.docker.com/r/noxied/wanwatcher)
 [![Docker Pulls](https://img.shields.io/docker/pulls/noxied/wanwatcher?logo=docker)](https://hub.docker.com/r/noxied/wanwatcher)
@@ -12,615 +12,330 @@
 [![GitHub Stars](https://img.shields.io/github/stars/noxied/wanwatcher?style=social)](https://github.com/noxied/wanwatcher)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Monitor your WAN IPv4 and IPv6 addresses and receive instant notifications via **Discord**, **Telegram**, and **Email** when they change.
-
-Perfect for homelabs, remote access, dynamic DNS monitoring, and more! 🏠
-
-[Features](#features) • [Quick Start](#quick-start) • [Configuration](#configuration) • [Documentation](#documentation) • [Upgrading](UPGRADING.md)
-
 </div>
 
-## ✨ Features
+WANwatcher is a small Docker container that periodically checks your public IPv4 and IPv6 addresses against several detection services. When an address changes it can notify you (Discord, Telegram, email, or anything Apprise supports), update DNS records (Cloudflare, DuckDNS, dyndns2), publish the state over MQTT for Home Assistant, and expose a status API with Prometheus metrics. It is aimed at homelabs and small servers on residential connections where the ISP changes your IP whenever it feels like it.
 
-- 🔄 **Automatic IP Change Detection** - Monitors both IPv4 and IPv6
-- 📱 **Multi-Platform Notifications** - Discord, Telegram, or Email (or all simultaneously)
-- 🔁 **Notification Retry Logic** - Automatic retry with exponential backoff (v1.4.0)
-- ✅ **Configuration Validation** - Validates settings before startup (v1.4.0)
-- 🎛️ **Explicit Enable/Disable Flags** - Full control over notification platforms
-- 🖼️ **Configurable Discord Avatars** - Use webhook's avatar or custom URL
-- 🌍 **Geographic Information** - Optional location data via ipinfo.io
-- 🐳 **Docker Optimized** - Lightweight, continuous monitoring
-- 💾 **Persistent Storage** - Survives container restarts
-- 📦 **Multi-Architecture** - Supports AMD64 and ARM64 via automated builds
-- ⚡ **Resource Efficient** - ~50-60MB RAM usage
-- 🛡️ **Error Handling** - Automatic recovery and error notifications
-- 🧪 **Tested & Validated** - 109+ unit tests with CI/CD pipeline (v1.4.0)
-- 📝 **Type Hints** - Full type annotations for better code quality (v1.4.0)
+## Features
 
-## 🆕 What's New in v1.4.1
+- IPv4 and IPv6 monitoring, each can be turned off independently
+- Multiple IP detection sources, tried in rotating order so one broken service never blocks detection
+- Change confirmation: a new IP is verified against a second source before you get notified
+- Notifications via Discord webhooks, Telegram bots, SMTP email, and Apprise (100+ services: ntfy, Gotify, Pushover, Slack, Matrix, ...)
+- Built-in dynamic DNS updates for Cloudflare, DuckDNS, and any dyndns2-compatible provider (No-IP, Dynu, ...)
+- HTTP status API with `/healthz`, `/api/status`, and Prometheus `/metrics`
+- MQTT publishing with Home Assistant auto-discovery
+- Startup notice, optional heartbeat, and internet outage detection with a recovery notification
+- Optional geographic info for the new IP via ipinfo.io
+- Graceful shutdown on SIGTERM, atomic state file writes, retries with backoff, change history in the state file
+- Runs as a non-root user (uid 1000), multi-arch image (AMD64 and ARM64)
 
-- ✅ **Python 3.14** - Latest Python with JIT compiler for better performance
-- ✅ **Code Quality Improvements** - Fixed 65+ linting issues, standardized formatting
-- ✅ **Security Enhancements** - Resolved 8 CodeQL security alerts, added workflow permissions
-- ✅ **CI/CD Improvements** - All checks passing (Black, isort, MyPy with type stubs)
-- ✅ **Smaller Docker Image** - Optimized from 51MB to 49MB
-- ✅ **Enhanced Testing** - Now testing across Python 3.10, 3.11, 3.12, 3.13, and 3.14
+## Quick start
 
-### v1.4.0 Highlights
+You need at least one notification method enabled. The minimal Discord setup:
 
-- ✅ **Configuration Validator** - Comprehensive validation before startup with clear error messages
-- ✅ **Notification Retry Logic** - Automatic retry with exponential backoff (3 attempts: 1s, 2s, 4s)
-- ✅ **Enhanced IPv6 Validation** - Proper format checking, filters special-use addresses
-- ✅ **Unit Test Suite** - 109+ test cases with pytest and coverage reporting
-- ✅ **Type Hints** - Full type annotations throughout codebase
-- ✅ **Multi-Architecture** - Automated AMD64 and ARM64 Docker builds
-
-See [CHANGELOG.md](CHANGELOG.md) for full version history.
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-Choose at least one notification platform:
-
-**Option 1: Discord** (Webhook)
-1. Go to Discord Server Settings → Integrations → Webhooks
-2. Create New Webhook
-3. Configure avatar (optional - in webhook settings)
-4. Copy the Webhook URL
-
-**Option 2: Telegram** (Bot)
-1. Open Telegram and message [@BotFather](https://t.me/BotFather)
-2. Send `/newbot` and follow the instructions
-3. Save your bot token (e.g., `123456789:ABCdefGHIjklMNOpqrsTUVwxyz`)
-4. Message [@userinfobot](https://t.me/userinfobot) to get your Chat ID
-5. Start a chat with your new bot (send `/start`)
-
-**Option 3: Email** (SMTP)
-1. Configure your SMTP server details
-2. Enable "less secure apps" or use app-specific password if required
-
-**Optional:** Get free ipinfo.io token from [ipinfo.io/signup](https://ipinfo.io/signup)
-
-### Using Docker Compose (Recommended)
-
-1. **Download docker-compose.yml:**
-   ```bash
-   curl -O https://raw.githubusercontent.com/noxied/wanwatcher/main/docker-compose.yml
-   ```
-
-2. **Edit configuration:**
-   ```bash
-   nano docker-compose.yml
-   ```
-   
-   Configure your notification settings:
-   ```yaml
-   environment:
-     # Discord Configuration
-     DISCORD_ENABLED: "true"                    # NEW in v1.3.1 - Must be "true" to enable
-     DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/..."
-     DISCORD_AVATAR_URL: ""                     # Optional custom avatar URL
-     
-     # Telegram Configuration
-     TELEGRAM_ENABLED: "false"                  # Set to "true" to enable
-     TELEGRAM_BOT_TOKEN: ""
-     TELEGRAM_CHAT_ID: ""
-     
-     # Email Configuration
-     EMAIL_ENABLED: "false"                     # Set to "true" to enable
-     EMAIL_SMTP_HOST: ""
-     EMAIL_SMTP_PORT: "587"
-     
-     # General Settings
-     SERVER_NAME: "My Server"
-     CHECK_INTERVAL: "900"
-   ```
-
-3. **Start the container:**
-   ```bash
-   docker-compose up -d
-   ```
-
-4. **Check logs:**
-   ```bash
-   docker-compose logs -f
-   ```
-   
-   You should see:
-   ```
-   Notification Status:
-     Discord: Configured ✓
-     Telegram: Not enabled
-     Email: Not enabled
-   ```
-
-### Using Docker Run
-
-**Discord notifications:**
 ```bash
 docker run -d \
   --name wanwatcher \
   --restart unless-stopped \
   -e DISCORD_ENABLED="true" \
-  -e DISCORD_WEBHOOK_URL="your_discord_webhook_url" \
+  -e DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN" \
   -e SERVER_NAME="My Server" \
-  -e CHECK_INTERVAL="900" \
-  -v $(pwd)/data:/data \
-  -v $(pwd)/logs:/logs \
-  noxied/wanwatcher:latest
+  -v ./data:/data \
+  -v ./logs:/logs \
+  noxied/wanwatcher:2.0.0
 ```
 
-**For Telegram, add:**
+Or with compose:
+
+```yaml
+services:
+  wanwatcher:
+    image: noxied/wanwatcher:2.0.0
+    container_name: wanwatcher
+    restart: unless-stopped
+    environment:
+      SERVER_NAME: "My Server"
+      CHECK_INTERVAL: "900"
+      DISCORD_ENABLED: "true"
+      DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN"
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+```
+
+Note: the container runs as uid 1000, so the host directories mounted on `/data` and `/logs` must be writable by that user:
+
 ```bash
-  -e TELEGRAM_ENABLED="true" \
-  -e TELEGRAM_BOT_TOKEN="your_telegram_bot_token" \
-  -e TELEGRAM_CHAT_ID="your_telegram_chat_id" \
+mkdir -p data logs
+sudo chown -R 1000:1000 data logs
 ```
 
-**For Email, add:**
-```bash
-  -e EMAIL_ENABLED="true" \
-  -e EMAIL_SMTP_HOST="smtp.gmail.com" \
-  -e EMAIL_SMTP_PORT="587" \
-  -e EMAIL_SMTP_USER="your_email@gmail.com" \
-  -e EMAIL_SMTP_PASSWORD="your_app_password" \
-  -e EMAIL_FROM="your_email@gmail.com" \
-  -e EMAIL_TO="recipient@example.com" \
-```
+The repository's [docker-compose.yml](docker-compose.yml) lists every option with comments.
 
-## 📚 Documentation
+## Configuration
 
-- **[CHANGELOG.md](CHANGELOG.md)** - Version history and changes
-- **[UPGRADING.md](UPGRADING.md)** - How to upgrade between versions
-- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+Everything is configured through environment variables. Booleans are the string `"true"` (anything else means false). Lists are comma separated.
 
-## Upgrading
-   
-See [UPGRADING.md](UPGRADING.md) for detailed instructions on upgrading from previous versions.
+### General
 
-**⚠️ Important for v1.3.0 users:** v1.3.1 requires adding `DISCORD_ENABLED="true"` to enable Discord notifications.
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SERVER_NAME` | `WANwatcher Docker` | Name shown in notifications |
+| `BOT_NAME` | `WANwatcher` | Display name used by notifiers |
+| `CHECK_INTERVAL` | `900` | Seconds between IP checks |
+| `MONITOR_IPV4` | `true` | Monitor the public IPv4 address |
+| `MONITOR_IPV6` | `true` | Monitor the public IPv6 address |
+| `IP_CHANGE_CONFIRMATION` | `true` | Confirm a detected change with a second source before acting on it |
+| `IPINFO_TOKEN` | (empty) | Optional ipinfo.io token for geographic data |
+| `HTTP_TIMEOUT` | `10` | Timeout in seconds for outbound HTTP requests |
+| `IP_DB_FILE` | `/data/ipinfo.db` | State file path |
+| `LOG_FILE` | `/logs/wanwatcher.log` | Log file path |
 
-## ⚙️ Configuration
+### Discord
 
-### Environment Variables
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DISCORD_ENABLED` | `false` | Enable Discord notifications |
+| `DISCORD_WEBHOOK_URL` | (empty) | Webhook URL |
+| `DISCORD_AVATAR_URL` | (empty) | Optional custom avatar; the webhook's own avatar is used when empty |
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| **Discord Settings** | | | |
-| `DISCORD_ENABLED` | No | `false` | Enable/disable Discord notifications (NEW in v1.3.1) |
-| `DISCORD_WEBHOOK_URL` | No* | - | Discord webhook URL for notifications |
-| `DISCORD_AVATAR_URL` | No | - | Custom avatar URL (optional, uses webhook's avatar by default) |
-| **Telegram Settings** | | | |
-| `TELEGRAM_ENABLED` | No | `false` | Enable Telegram notifications |
-| `TELEGRAM_BOT_TOKEN` | No* | - | Telegram bot token from @BotFather |
-| `TELEGRAM_CHAT_ID` | No* | - | Your Telegram chat ID |
-| `TELEGRAM_PARSE_MODE` | No | `HTML` | Message format: `HTML` or `Markdown` |
-| **Email Settings** | | | |
-| `EMAIL_ENABLED` | No | `false` | Enable email notifications |
-| `EMAIL_SMTP_HOST` | No* | - | SMTP server address (e.g., smtp.gmail.com) |
-| `EMAIL_SMTP_PORT` | No | `587` | SMTP server port |
-| `EMAIL_USE_TLS` | No | `true` | Use TLS encryption |
-| `EMAIL_SMTP_USER` | No* | - | SMTP username |
-| `EMAIL_SMTP_PASSWORD` | No* | - | SMTP password or app-specific password |
-| `EMAIL_FROM` | No* | - | Sender email address |
-| `EMAIL_TO` | No* | - | Recipient email address |
-| **General Settings** | | | |
-| `SERVER_NAME` | No | `WANwatcher Docker` | Server name for identification |
-| `BOT_NAME` | No | `WANwatcher` | Bot display name |
-| `CHECK_INTERVAL` | No | `900` | Check interval in seconds (15 min) |
-| `IPINFO_TOKEN` | No | - | ipinfo.io token for geographic data |
-| `MONITOR_IPV4` | No | `true` | Enable IPv4 monitoring |
-| `MONITOR_IPV6` | No | `true` | Enable IPv6 monitoring |
+### Telegram
 
-\* Required only if the corresponding platform is enabled. At least one notification platform must be enabled.
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TELEGRAM_ENABLED` | `false` | Enable Telegram notifications |
+| `TELEGRAM_BOT_TOKEN` | (empty) | Bot token from @BotFather |
+| `TELEGRAM_CHAT_ID` | (empty) | Chat or channel id |
+| `TELEGRAM_PARSE_MODE` | `HTML` | `HTML` or `Markdown` |
 
-### Notification Platform Options
+### Email (SMTP)
 
-**1. Discord Only:**
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `EMAIL_ENABLED` | `false` | Enable email notifications |
+| `EMAIL_SMTP_HOST` | (empty) | SMTP server, e.g. `smtp.gmail.com` |
+| `EMAIL_SMTP_PORT` | `587` | 587 for TLS, 465 for SSL |
+| `EMAIL_SMTP_USER` | (empty) | SMTP username |
+| `EMAIL_SMTP_PASSWORD` | (empty) | SMTP password (use an app password for Gmail) |
+| `EMAIL_FROM` | (empty) | Sender address |
+| `EMAIL_TO` | (empty) | Recipients, comma separated |
+| `EMAIL_USE_TLS` | `true` | STARTTLS |
+| `EMAIL_USE_SSL` | `false` | Implicit SSL (do not enable both TLS and SSL) |
+| `EMAIL_SUBJECT_PREFIX` | `[WANwatcher]` | Subject prefix |
+
+### Apprise
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `APPRISE_ENABLED` | `false` | Enable Apprise notifications |
+| `APPRISE_URLS` | (empty) | Comma-separated Apprise URLs |
+
+### Dynamic DNS
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DDNS_ENABLED` | `false` | Enable DNS updates on IP change |
+| `DDNS_PROVIDER` | (empty) | `cloudflare`, `duckdns`, or `dyndns2` |
+| `CLOUDFLARE_API_TOKEN` | (empty) | API token with Zone.DNS edit permission |
+| `CLOUDFLARE_ZONE` | (empty) | Zone name, e.g. `example.com` |
+| `CLOUDFLARE_RECORDS` | (empty) | Records to update, e.g. `home.example.com,vpn.example.com` |
+| `CLOUDFLARE_PROXIED` | `false` | Whether updated records go through the Cloudflare proxy |
+| `CLOUDFLARE_TTL` | `1` | Record TTL; 1 means automatic |
+| `DUCKDNS_TOKEN` | (empty) | DuckDNS account token |
+| `DUCKDNS_DOMAINS` | (empty) | Subdomain names, comma separated |
+| `DYNDNS2_SERVER` | (empty) | Update server, e.g. `https://dynupdate.no-ip.com` |
+| `DYNDNS2_USERNAME` | (empty) | Username |
+| `DYNDNS2_PASSWORD` | (empty) | Password |
+| `DYNDNS2_HOSTNAMES` | (empty) | Hostnames, comma separated |
+
+### Status API
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `API_ENABLED` | `false` | Enable the HTTP status API |
+| `API_BIND` | `0.0.0.0` | Bind address |
+| `API_PORT` | `8080` | Port (remember to publish it) |
+
+### MQTT
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MQTT_ENABLED` | `false` | Enable MQTT publishing |
+| `MQTT_HOST` | (empty) | Broker hostname |
+| `MQTT_PORT` | `1883` | Broker port |
+| `MQTT_USERNAME` | (empty) | Username |
+| `MQTT_PASSWORD` | (empty) | Password |
+| `MQTT_CLIENT_ID` | `wanwatcher` | Client id |
+| `MQTT_TOPIC_PREFIX` | `wanwatcher` | Topic prefix |
+| `MQTT_TLS` | `false` | TLS connection to the broker |
+| `MQTT_HA_DISCOVERY` | `true` | Publish Home Assistant discovery configs |
+| `MQTT_HA_DISCOVERY_PREFIX` | `homeassistant` | HA discovery prefix |
+
+### Events
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NOTIFY_ON_STARTUP` | `true` | Send a message when the container starts |
+| `HEARTBEAT_ENABLED` | `false` | Periodic "still alive" message |
+| `HEARTBEAT_INTERVAL` | `86400` | Seconds between heartbeats |
+| `OUTAGE_DETECTION_ENABLED` | `true` | Notify when connectivity drops and when it returns |
+| `OUTAGE_THRESHOLD` | `3` | Consecutive failed checks before declaring an outage |
+
+### Update check
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `UPDATE_CHECK_ENABLED` | `true` | Check GitHub for new releases |
+| `UPDATE_CHECK_INTERVAL` | `86400` | Seconds between checks |
+| `UPDATE_CHECK_ON_STARTUP` | `true` | Also check at startup |
+
+## Notifications
+
+At least one notifier must be enabled or the container refuses to start.
+
+### Discord
+
+Create a webhook under Server Settings > Integrations > Webhooks and set `DISCORD_ENABLED=true` and `DISCORD_WEBHOOK_URL`. Messages are sent as embeds. To customize the avatar, set it on the webhook in Discord or point `DISCORD_AVATAR_URL` at a public image.
+
+### Telegram
+
+Create a bot with [@BotFather](https://t.me/BotFather), get your chat id (for example from [@userinfobot](https://t.me/userinfobot)), send `/start` to your bot once, then set `TELEGRAM_ENABLED`, `TELEGRAM_BOT_TOKEN`, and `TELEGRAM_CHAT_ID`.
+
+### Email
+
+Standard SMTP. For Gmail, enable 2FA and generate an app password, then:
+
 ```yaml
-environment:
-  DISCORD_ENABLED: "true"
-  DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/..."
-  TELEGRAM_ENABLED: "false"
-  EMAIL_ENABLED: "false"
-```
-
-**2. Telegram Only:**
-```yaml
-environment:
-  DISCORD_ENABLED: "false"
-  TELEGRAM_ENABLED: "true"
-  TELEGRAM_BOT_TOKEN: "123456789:ABC..."
-  TELEGRAM_CHAT_ID: "123456789"
-  EMAIL_ENABLED: "false"
-```
-
-**3. Email Only:**
-```yaml
-environment:
-  DISCORD_ENABLED: "false"
-  TELEGRAM_ENABLED: "false"
-  EMAIL_ENABLED: "true"
-  EMAIL_SMTP_HOST: "smtp.gmail.com"
-  EMAIL_SMTP_USER: "your_email@gmail.com"
-  EMAIL_SMTP_PASSWORD: "your_app_password"
-  EMAIL_FROM: "your_email@gmail.com"
-  EMAIL_TO: "recipient@example.com"
-```
-
-**4. All Platforms (Recommended for redundancy):**
-```yaml
-environment:
-  DISCORD_ENABLED: "true"
-  DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/..."
-  TELEGRAM_ENABLED: "true"
-  TELEGRAM_BOT_TOKEN: "123456789:ABC..."
-  TELEGRAM_CHAT_ID: "123456789"
-  EMAIL_ENABLED: "true"
-  EMAIL_SMTP_HOST: "smtp.gmail.com"
-  EMAIL_SMTP_USER: "your_email@gmail.com"
-  EMAIL_SMTP_PASSWORD: "your_app_password"
-  EMAIL_FROM: "your_email@gmail.com"
-  EMAIL_TO: "recipient@example.com"
-```
-
-### Configuration Validation
-
-WANwatcher validates your configuration on startup. Check logs for:
-
-```
-Notification Status:
-  Discord: Configured ✓
-  Telegram: Not enabled
-  Email: Configured ✓
-```
-
-If you see errors, verify:
-1. Platform `*_ENABLED` flags are set to `"true"` (with quotes)
-2. All required credentials are provided for enabled platforms
-3. URLs and tokens are valid and not expired
-
-### Enabling Discord Notifications
-
-To enable Discord notifications:
-
-1. Set `DISCORD_ENABLED="true"`
-2. Provide your `DISCORD_WEBHOOK_URL`
-3. (Optional) Configure avatar (see below)
-
-**Example:**
-```yaml
-environment:
-  DISCORD_ENABLED: "true"
-  DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN"
-```
-
-### Discord Avatar Configuration
-
-**Option 1: Use Webhook's Avatar (Recommended)**
-1. Go to Discord Server Settings > Integrations > Webhooks
-2. Edit your webhook
-3. Set an avatar image
-4. Leave `DISCORD_AVATAR_URL` empty in your config
-5. WANwatcher will use the webhook's avatar automatically
-
-**Option 2: Use Custom Avatar URL**
-```yaml
-environment:
-  DISCORD_AVATAR_URL: "https://example.com/your-avatar.png"
-```
-
-**Custom avatar requirements:**
-- Must be publicly accessible URL
-- Must use `http://` or `https://` scheme
-- Must be a valid image file (PNG, JPG, GIF)
-- Must be under 2048 characters
-
-**Note:** Discord will use your webhook's configured avatar by default if `DISCORD_AVATAR_URL` is not provided. This is the recommended approach as it's simpler and more reliable.
-
-## 📧 Email Setup
-
-### Gmail Configuration
-
-1. **Enable 2-Factor Authentication** (if not already enabled)
-2. **Generate App Password:**
-   - Go to [Google Account Settings](https://myaccount.google.com/security)
-   - Click on "2-Step Verification"
-   - Scroll to "App passwords"
-   - Generate a new app password for "Mail"
-   
-3. **Configure WANwatcher:**
-   ```yaml
-   EMAIL_ENABLED: "true"
-   EMAIL_SMTP_HOST: "smtp.gmail.com"
-   EMAIL_SMTP_PORT: "587"
-   EMAIL_SMTP_USER: "your_email@gmail.com"
-   EMAIL_SMTP_PASSWORD: "your_16_char_app_password"
-   EMAIL_FROM: "your_email@gmail.com"
-   EMAIL_TO: "recipient@example.com"
-   ```
-
-### Other Email Providers
-
-**Outlook/Hotmail:**
-```yaml
-EMAIL_SMTP_HOST: "smtp-mail.outlook.com"
+EMAIL_ENABLED: "true"
+EMAIL_SMTP_HOST: "smtp.gmail.com"
 EMAIL_SMTP_PORT: "587"
+EMAIL_SMTP_USER: "you@gmail.com"
+EMAIL_SMTP_PASSWORD: "your-app-password"
+EMAIL_FROM: "you@gmail.com"
+EMAIL_TO: "you@gmail.com"
 ```
 
-**Yahoo Mail:**
+### Apprise
+
+One setting covers everything Apprise supports. Some example URLs:
+
 ```yaml
-EMAIL_SMTP_HOST: "smtp.mail.yahoo.com"
-EMAIL_SMTP_PORT: "587"
+APPRISE_ENABLED: "true"
+# ntfy topic
+APPRISE_URLS: "ntfy://ntfy.sh/my-topic"
+# multiple services, comma separated
+# APPRISE_URLS: "pover://USER_KEY@APP_TOKEN,gotify://gotify.example.com/APP_TOKEN"
 ```
 
-**Custom SMTP:**
+See the [Apprise URL list](https://github.com/caronc/apprise#supported-notifications) for every supported service.
+
+## Dynamic DNS
+
+When `DDNS_ENABLED=true`, WANwatcher updates your DNS records whenever the IP changes (and retries failed updates on the next check). One provider at a time, selected by `DDNS_PROVIDER`.
+
+Cloudflare (token needs Zone.DNS edit permission for the zone):
+
 ```yaml
-EMAIL_SMTP_HOST: "mail.example.com"
-EMAIL_SMTP_PORT: "587"
-EMAIL_USE_TLS: "true"
+DDNS_ENABLED: "true"
+DDNS_PROVIDER: "cloudflare"
+CLOUDFLARE_API_TOKEN: "your-token"
+CLOUDFLARE_ZONE: "example.com"
+CLOUDFLARE_RECORDS: "home.example.com"
 ```
 
-## 📱 Telegram Setup
+DuckDNS:
 
-### Creating a Telegram Bot
-
-1. **Create the bot:**
-   ```
-   Open Telegram → Search for @BotFather
-   Send: /newbot
-   Follow the instructions
-   Save your bot token
-   ```
-
-2. **Get your Chat ID:**
-   ```
-   Search for @userinfobot
-   Send: /start
-   Copy your Chat ID
-   ```
-
-3. **Start your bot:**
-   ```
-   Search for your bot
-   Send: /start
-   ```
-
-4. **Configure WANwatcher:**
-   ```yaml
-   TELEGRAM_ENABLED: "true"
-   TELEGRAM_BOT_TOKEN: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-   TELEGRAM_CHAT_ID: "123456789"
-   ```
-
-## 📦 Volume Mounts
-
-| Path | Purpose |
-|------|---------|
-| `/data` | IP database storage (survives restarts) |
-| `/logs` | Log file storage |
-
-Example:
 ```yaml
-volumes:
-  - ./data:/data      # Database persists here
-  - ./logs:/logs      # Logs stored here
+DDNS_ENABLED: "true"
+DDNS_PROVIDER: "duckdns"
+DUCKDNS_TOKEN: "your-token"
+DUCKDNS_DOMAINS: "myhome"
 ```
 
-## 📊 Monitoring
+Generic dyndns2 (No-IP, Dynu, and most router-supported providers):
 
-### View Logs
+```yaml
+DDNS_ENABLED: "true"
+DDNS_PROVIDER: "dyndns2"
+DYNDNS2_SERVER: "https://dynupdate.no-ip.com"
+DYNDNS2_USERNAME: "user"
+DYNDNS2_PASSWORD: "pass"
+DYNDNS2_HOSTNAMES: "home.example.com"
+```
+
+## Status API
+
+Set `API_ENABLED=true` and publish the port (`-p 8080:8080`). Endpoints:
+
+- `GET /healthz` returns `{"status": "ok", ...}` when the loop is healthy
+- `GET /api/status` returns the full state: current IPs, last check, last change, uptime
+- `GET /metrics` returns Prometheus metrics
 
 ```bash
-# Real-time logs
-docker logs -f wanwatcher
-
-# Last 50 lines
-docker logs --tail 50 wanwatcher
-
-# With docker-compose
-docker-compose logs -f wanwatcher
+curl http://localhost:8080/api/status
+curl http://localhost:8080/metrics
 ```
 
-### Check Status
+Exported metrics include `wanwatcher_checks_total`, `wanwatcher_check_failures_total`, `wanwatcher_ip_changes_total`, `wanwatcher_notifications_total`, `wanwatcher_ddns_updates_total`, `wanwatcher_last_change_timestamp_seconds`, `wanwatcher_last_check_timestamp_seconds`, and `wanwatcher_up`. A Prometheus scrape job pointed at `wanwatcher:8080` works as-is; no extra exporter needed.
+
+When the API is enabled, the container healthcheck queries `/healthz`. Otherwise it verifies that the state file exists, is valid JSON, and was refreshed recently.
+
+## MQTT and Home Assistant
+
+With `MQTT_ENABLED=true` the current state is published as retained messages under the topic prefix (default `wanwatcher`):
+
+- `wanwatcher/ipv4`, `wanwatcher/ipv6`, `wanwatcher/last_change`
+- `wanwatcher/state` (JSON with IPs, geo data, and server name)
+- `wanwatcher/availability` (`online`/`offline`, also set as the MQTT will)
+
+With `MQTT_HA_DISCOVERY=true` (the default) Home Assistant discovery configs are published, so a device with WAN IPv4, WAN IPv6, and last-change sensors shows up automatically once HA is connected to the same broker.
+
+## Events
+
+Besides IP change notifications, WANwatcher can send:
+
+- a startup notice when the container starts (`NOTIFY_ON_STARTUP`, on by default)
+- a periodic heartbeat so you know the monitor itself is alive (`HEARTBEAT_ENABLED`, off by default)
+- an outage notice after `OUTAGE_THRESHOLD` consecutive failed checks, and a recovery notice when connectivity returns (`OUTAGE_DETECTION_ENABLED`, on by default; the outage notice is delivered once the connection is back, since nothing can be sent during the outage)
+- an update notice when a new WANwatcher release is available (`UPDATE_CHECK_ENABLED`)
+
+## Upgrading from 1.x
+
+All v1 environment variables keep working and the state file is migrated automatically. The one breaking change: the container now runs as uid 1000, so your `/data` and `/logs` volumes must be writable by that user (`sudo chown -R 1000:1000 ./data ./logs`). See [UPGRADING.md](UPGRADING.md) for details.
+
+## Development
 
 ```bash
-# Container status
-docker ps | grep wanwatcher
-
-# Resource usage
-docker stats wanwatcher
-
-# With docker-compose
-docker-compose ps
-```
-
-## 🧪 Testing
-
-### Force Notification
-
-```bash
-# Remove database to trigger first-run notification
-docker exec wanwatcher rm /data/ipinfo.db
-docker restart wanwatcher
-
-# With docker-compose
-docker-compose exec wanwatcher rm /data/ipinfo.db
-docker-compose restart wanwatcher
-```
-
-## 🔧 Troubleshooting
-
-### No Notifications Received
-
-1. **Check logs for configuration validation:**
-   ```bash
-   docker logs wanwatcher | grep "Notification Status"
-   ```
-
-2. **Verify platform is enabled:**
-   ```bash
-   docker exec wanwatcher env | grep DISCORD_ENABLED
-   # Should show: DISCORD_ENABLED=true
-   ```
-
-3. **Test Discord webhook:**
-   ```bash
-   curl -X POST -H "Content-Type: application/json" \
-     -d '{"content":"Test"}' "YOUR_DISCORD_WEBHOOK_URL"
-   ```
-
-4. **Test Telegram bot:**
-   ```bash
-   curl "https://api.telegram.org/botYOUR_BOT_TOKEN/getMe"
-   ```
-
-### Discord Notifications Not Working (v1.3.1)
-
-If you upgraded from v1.3.0 or earlier and notifications stopped:
-
-1. **Check if DISCORD_ENABLED is set:**
-   ```bash
-   docker logs wanwatcher | grep "Discord"
-   ```
-
-2. **Add the required flag:**
-   ```yaml
-   environment:
-     DISCORD_ENABLED: "true"  # Required in v1.3.1+
-     DISCORD_WEBHOOK_URL: "https://..."
-   ```
-
-3. **Restart container:**
-   ```bash
-   docker-compose down
-   docker-compose up -d
-   ```
-
-See [UPGRADING.md](UPGRADING.md) for more details on v1.3.1 changes.
-
-### Avatar Not Displaying
-
-**Option 1 (Recommended):** Configure in Discord
-1. Go to Discord Server Settings > Integrations > Webhooks
-2. Edit webhook and set avatar
-3. Leave `DISCORD_AVATAR_URL` empty
-
-**Option 2:** Use custom URL
-```yaml
-DISCORD_AVATAR_URL: "https://example.com/avatar.png"
-```
-
-For more troubleshooting, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
-
-## 🔒 Security Best Practices
-
-1. **Never commit secrets to version control**
-   - Use environment variables
-   - Add `.env` to `.gitignore`
-
-2. **Keep tokens private**
-   - Webhook URLs and bot tokens are sensitive
-   - Rotate tokens periodically
-
-3. **Use app-specific passwords**
-   - For email, use app passwords instead of main password
-   - Enable 2FA on your email account
-
-## 📊 Performance
-
-- **Memory:** ~50-60MB
-- **CPU:** <1% idle, ~2-5% during checks
-- **Disk:** <100MB (image + logs)
-- **Network:** Minimal (only during IP checks and notifications)
-
-## 🧪 Development & Testing
-
-### Running Tests
-
-WANwatcher includes a comprehensive test suite:
-
-```bash
-# Install development dependencies
+git clone https://github.com/noxied/wanwatcher.git
+cd wanwatcher
 pip install -r requirements-dev.txt
 
-# Run all tests with coverage
+# tests
 pytest tests/ -v --cov
 
-# Run specific test file
-pytest tests/test_config_validator.py -v
+# lint and format
+black wanwatcher/ tests/
+isort wanwatcher/ tests/
+flake8 wanwatcher/
+mypy wanwatcher/ --ignore-missing-imports
 
-# Run with HTML coverage report
-pytest tests/ --cov --cov-report=html
-open htmlcov/index.html
+# run locally
+python -m wanwatcher
+
+# build the image
+docker build -t wanwatcher:dev .
 ```
 
-### Configuration Validation
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, including how to add a notification or DDNS provider.
 
-Test your configuration before deployment:
+## Documentation
 
-```bash
-# Export your environment variables
-export DISCORD_ENABLED=true
-export DISCORD_WEBHOOK_URL="your_webhook_url"
-# ... other variables ...
+- [CHANGELOG.md](CHANGELOG.md) for version history
+- [UPGRADING.md](UPGRADING.md) for upgrade instructions
+- [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for common problems
+- [SECURITY.md](SECURITY.md) for the security policy
 
-# Run validator
-python config_validator.py
-```
+## License
 
-### Code Quality
-
-```bash
-# Format code
-black *.py
-isort *.py
-
-# Lint
-flake8 *.py
-pylint *.py
-
-# Type checking
-mypy *.py --ignore-missing-imports
-```
-
-### Multi-Architecture Builds
-
-The CI/CD pipeline automatically builds for AMD64 and ARM64:
-- Triggered on git tags (e.g., `v1.4.0`)
-- Automated via GitHub Actions
-- Published to Docker Hub
-
-## 🤝 Contributing
-
-Contributions are welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Write tests for your changes
-4. Ensure all tests pass: `pytest tests/ -v`
-5. Submit a Pull Request
-
-The CI/CD pipeline will automatically:
-- Run linting (Black, Flake8, Pylint)
-- Run security scans (Bandit, Safety)
-- Run all tests on Python 3.10, 3.11, 3.12
-- Build Docker images for AMD64 and ARM64
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## 🔧 Support
-
-- **Issues:** [GitHub Issues](https://github.com/noxied/wanwatcher/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/noxied/wanwatcher/discussions)
-- **Documentation:** [CHANGELOG.md](CHANGELOG.md) | [UPGRADING.md](UPGRADING.md)
-
-## 📜 Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for complete version history.
-
----
-
-**Made with ❤️ for homelab enthusiasts**
+MIT, see [LICENSE](LICENSE).
