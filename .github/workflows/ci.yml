@@ -41,25 +41,25 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install flake8 pylint black isort mypy types-requests
-          pip install requests ipinfo
+          pip install -r requirements.txt
 
       - name: Run Black (code formatting check)
-        run: black --check --diff *.py
+        run: black --check --diff wanwatcher tests scripts
 
       - name: Run isort (import sorting check)
-        run: isort --check-only --diff *.py
+        run: isort --check-only --diff wanwatcher tests scripts
 
       - name: Run Flake8 (style guide)
-        run: flake8 *.py --count --select=E9,F63,F7,F82 --show-source --statistics
+        run: flake8 wanwatcher tests scripts --count --select=E9,F63,F7,F82 --show-source --statistics
 
       - name: Run Flake8 (complexity)
-        run: flake8 *.py --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        run: flake8 wanwatcher tests scripts --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
       - name: Run Pylint
-        run: pylint *.py --exit-zero --max-line-length=127
+        run: pylint wanwatcher --exit-zero --max-line-length=127
 
       - name: Run MyPy (type checking)
-        run: mypy *.py --ignore-missing-imports --no-strict-optional
+        run: mypy wanwatcher --ignore-missing-imports --no-strict-optional
 
   # ============================================================================
   # Security Scanning
@@ -85,7 +85,7 @@ jobs:
           pip install bandit safety
 
       - name: Run Bandit (security issues)
-        run: bandit -r *.py -f json -o bandit-report.json || true
+        run: bandit -r wanwatcher -f json -o bandit-report.json || true
 
       - name: Upload Bandit report
         uses: actions/upload-artifact@v6
@@ -95,7 +95,7 @@ jobs:
 
       - name: Run Safety (dependency vulnerabilities)
         run: |
-          pip install requests ipinfo
+          pip install -r requirements.txt
           safety check --json || true
 
   # ============================================================================
@@ -122,15 +122,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pytest pytest-cov pytest-mock
-          pip install requests ipinfo
+          pip install -r requirements.txt
 
       - name: Run tests with coverage
-        run: |
-          if [ -d "tests" ]; then
-            pytest tests/ --cov=. --cov-report=xml --cov-report=html
-          else
-            echo "No tests directory found, skipping tests"
-          fi
+        run: pytest tests/ --cov=wanwatcher --cov-report=xml --cov-report=html
 
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.11'
@@ -169,7 +164,7 @@ jobs:
           export DISCORD_ENABLED=true
           export DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/123/test
           export CHECK_INTERVAL=900
-          python config_validator.py
+          python -m wanwatcher.validation
 
   # ============================================================================
   # Docker Build & Test
@@ -205,7 +200,7 @@ jobs:
             -e TELEGRAM_ENABLED=false \
             -e EMAIL_ENABLED=false \
             ${{ env.DOCKER_IMAGE }}:test \
-            python -c "import sys; sys.path.insert(0, '/app'); from wanwatcher_docker import VERSION; print(f'Version: {VERSION}')"
+            python -c "from wanwatcher import VERSION; print(f'Version: {VERSION}')"
 
   # ============================================================================
   # Docker Push (only on tags/main)

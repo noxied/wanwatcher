@@ -39,3 +39,10 @@ docker-compose.override.yml
 # OS
 .DS_Store
 Thumbs.db
+
+# CI / tooling
+.github
+.claude
+memory
+tests/
+pytest.ini
