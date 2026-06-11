@@ -1,7 +1,8 @@
 """Aggregates notification providers and fans messages out with retries."""
 
+import functools
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from wanwatcher.notifiers.base import NotificationProvider, retry_with_backoff
 
@@ -15,14 +16,18 @@ class NotificationManager:
     def add_provider(self, provider: NotificationProvider) -> None:
         self.providers.append(provider)
 
-    def _fan_out(self, action_name: str, call) -> Dict[str, bool]:
+    def _fan_out(
+        self, action_name: str, call: Callable[[NotificationProvider], bool]
+    ) -> Dict[str, bool]:
         """Run `call(provider)` for each provider with retry; collect results."""
         results: Dict[str, bool] = {}
         for provider in self.providers:
             provider_name = provider.__class__.__name__
             logger.info("Sending %s via %s...", action_name, provider_name)
+            # functools.partial binds the current provider, avoiding the
+            # late-binding closure trap of a bare lambda in the loop.
             success = retry_with_backoff(
-                lambda p=provider: call(p), max_retries=3, base_delay=2.0
+                functools.partial(call, provider), max_retries=3, base_delay=2.0
             )
             results[provider_name] = success
             if success:
