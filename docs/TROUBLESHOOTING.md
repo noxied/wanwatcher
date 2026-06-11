@@ -9,6 +9,10 @@ docker logs -f wanwatcher
 tail -f logs/wanwatcher.log
 ```
 
+For the full list of environment variables and defaults, see the
+[configuration reference](../README.md#configuration). If you are coming from
+1.x, the [upgrade guide](../UPGRADING.md) covers the breaking change first.
+
 ## Volume permission errors after upgrading to 2.x
 
 Since v2.0.0 the container runs as uid 1000 instead of root. If the host
@@ -272,7 +276,7 @@ notification once connectivity returns.
 
 ## Geographic data missing
 
-- `IPINFO_TOKEN` is optional; without it, notifications simply omit
+- `IPINFO_TOKEN` is optional; without it, notifications leave out the
   location data.
 - With a token, verify it works:
   `curl -H "Authorization: Bearer YOUR_TOKEN" https://ipinfo.io/json`
@@ -295,7 +299,11 @@ published; build locally if you need it.
 
 ## Still stuck
 
-Search the existing issues at
-https://github.com/noxied/wanwatcher/issues, and if nothing matches, open a
-new one with your logs (redact webhook URLs and tokens), your configuration,
-what you already tried, and the platform you run on.
+Search the [existing issues](https://github.com/noxied/wanwatcher/issues), and
+if nothing matches, open a new one with your logs (redact webhook URLs and
+tokens), your configuration, what you already tried, and the platform you run
+on. The [contributing guide](../CONTRIBUTING.md#reporting-bugs) has the details
+of what to include.
+
+For a suspected security vulnerability, do not open a public issue; follow the
+[security policy](../SECURITY.md) instead.
