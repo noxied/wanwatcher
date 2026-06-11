@@ -109,3 +109,6 @@ with a description, steps to reproduce, and the impact as you understand it.
 You can expect an acknowledgment within 48 hours and an initial assessment
 within a week. Fix timelines depend on severity; critical issues are
 addressed as fast as possible, low-severity ones in the next release.
+
+For non-security problems, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+and the [configuration reference](README.md#configuration).
