@@ -206,7 +206,7 @@ jobs:
       # ignore-unfixed skips CVEs with no upstream patch; .trivyignore (repo
       # root) holds documented exceptions for any fixable findings.
       - name: Scan image for vulnerabilities (Trivy)
-        uses: aquasecurity/trivy-action@0.29.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.DOCKER_IMAGE }}:test
           format: table
@@ -269,7 +269,7 @@ jobs:
       # Generate a CycloneDX SBOM for the published image (by digest, so it is
       # unambiguous across the multiple tags) and keep it as a build artifact.
       - name: Generate SBOM
-        uses: anchore/sbom-action@v0.18.0
+        uses: anchore/sbom-action@v0.24.0
         with:
           image: ${{ env.DOCKER_IMAGE }}@${{ steps.build.outputs.digest }}
           format: cyclonedx-json
@@ -284,7 +284,7 @@ jobs:
       # Sign the image by digest with Cosign keyless (Sigstore/OIDC). Signing
       # the digest covers every tag that points at it.
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v3.8.0
+        uses: sigstore/cosign-installer@v4.1.2
 
       - name: Sign the published image
         env:
