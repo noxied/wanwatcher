@@ -9,8 +9,6 @@ Telegram HTML, or Discord markdown. For Telegram, escaping also prevents the
 from email.message import Message
 from unittest.mock import Mock, patch
 
-import pytest
-
 from wanwatcher.notifiers import DiscordNotifier, EmailNotifier, TelegramNotifier
 from wanwatcher.notifiers._escape import (
     discord_escape,

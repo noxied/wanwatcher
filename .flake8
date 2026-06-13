@@ -1,0 +1,6 @@
+[flake8]
+# Black owns formatting and line wrapping (88 cols). Long, unsplittable lines
+# (inline HTML templates, URLs) are left to Black, so E501 is not enforced here;
+# E203 and W503 are disabled for Black compatibility.
+max-line-length = 88
+extend-ignore = E203, W503, E501
