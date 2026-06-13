@@ -52,14 +52,14 @@ jobs:
       - name: Run Flake8 (style guide)
         run: flake8 wanwatcher tests scripts --count --select=E9,F63,F7,F82 --show-source --statistics
 
-      - name: Run Flake8 (complexity)
-        run: flake8 wanwatcher tests scripts --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      - name: Run Flake8 (full, config-driven)
+        run: flake8 wanwatcher tests scripts --count --exit-zero --max-complexity=10 --statistics
 
       - name: Run Pylint
-        run: pylint wanwatcher --exit-zero --max-line-length=127
+        run: pylint wanwatcher --exit-zero --max-line-length=88
 
       - name: Run MyPy (type checking)
-        run: mypy wanwatcher --ignore-missing-imports --no-strict-optional
+        run: mypy wanwatcher --ignore-missing-imports
 
   # ============================================================================
   # Security Scanning
