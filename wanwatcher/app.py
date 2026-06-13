@@ -8,7 +8,7 @@ import sys
 import threading
 import time
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from wanwatcher import VERSION
 from wanwatcher.config import Config, SecretFileError
@@ -19,6 +19,11 @@ from wanwatcher.metrics import Metrics
 from wanwatcher.notifiers import build_manager
 from wanwatcher.state import State, StateStore
 from wanwatcher.updates import check_for_updates
+
+if TYPE_CHECKING:
+    from wanwatcher.api import StatusServer
+    from wanwatcher.ddns.base import DDNSClient
+    from wanwatcher.mqtt import MQTTPublisher
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +54,8 @@ class Application:
         self.state: State = State()
         self.notifications = build_manager(config)
         self.shutdown_event = threading.Event()
+        # Guards the shared state read by the API thread and written by the loop.
+        self._lock = threading.Lock()
         self.check_count = 0
         self.consecutive_failures = 0
         self.outage_since: Optional[float] = None
@@ -56,9 +63,10 @@ class Application:
         self.last_update_check = time.time()
         self.last_heartbeat = time.time()
         self.last_check_at: Optional[str] = None
+        self.last_check_ts: Optional[float] = None
         self.geo_data: Optional[Dict[str, Any]] = None
 
-        self.ddns_client = None
+        self.ddns_client: Optional["DDNSClient"] = None
         if config.ddns.enabled:
             from wanwatcher.ddns import build_ddns_client
 
@@ -66,19 +74,19 @@ class Application:
                 config.ddns, timeout=config.http_timeout, metrics=self.metrics
             )
 
-        self.api_server = None
+        self.api_server: Optional["StatusServer"] = None
         if config.api.enabled:
-            from wanwatcher.api import StatusServer
+            from wanwatcher import api as _api
 
-            self.api_server = StatusServer(
+            self.api_server = _api.StatusServer(
                 config.api, status_provider=self.status_snapshot, metrics=self.metrics
             )
 
-        self.mqtt = None
+        self.mqtt: Optional["MQTTPublisher"] = None
         if config.mqtt.enabled:
-            from wanwatcher.mqtt import MQTTPublisher
+            from wanwatcher import mqtt as _mqtt
 
-            self.mqtt = MQTTPublisher(config.mqtt, server_name=config.server_name)
+            self.mqtt = _mqtt.MQTTPublisher(config.mqtt, server_name=config.server_name)
 
     # -- signals -----------------------------------------------------------
 
@@ -96,28 +104,42 @@ class Application:
     # -- status for the API ------------------------------------------------
 
     def status_snapshot(self) -> Dict[str, Any]:
-        return {
-            "version": VERSION,
-            "server_name": self.config.server_name,
-            "ipv4": self.state.ipv4,
-            "ipv6": self.state.ipv6,
-            "geo": self.geo_data,
-            "last_check": self.last_check_at,
-            "last_change": self.state.last_change,
-            "checks_performed": self.check_count,
-            "uptime_seconds": round(time.time() - self.metrics.started_at),
-            "outage": self.outage_since is not None,
-            "history": self.state.history,
-            "notifiers": [p.__class__.__name__ for p in self.notifications.providers],
-            "ddns_enabled": self.ddns_client is not None,
-            "mqtt_enabled": self.mqtt is not None,
-        }
+        now = time.time()
+        with self._lock:
+            seconds_since_last_check: Optional[float] = (
+                round(now - self.last_check_ts, 1)
+                if self.last_check_ts is not None
+                else None
+            )
+            return {
+                "version": VERSION,
+                "server_name": self.config.server_name,
+                "ipv4": self.state.ipv4,
+                "ipv6": self.state.ipv6,
+                "geo": self.geo_data,
+                "last_check": self.last_check_at,
+                "seconds_since_last_check": seconds_since_last_check,
+                "check_interval": self.config.check_interval,
+                "last_change": self.state.last_change,
+                "checks_performed": self.check_count,
+                "uptime_seconds": round(now - self.metrics.started_at),
+                "outage": self.outage_since is not None,
+                "history": list(self.state.history),
+                "notifiers": [
+                    p.__class__.__name__ for p in self.notifications.providers
+                ],
+                "ddns_enabled": self.ddns_client is not None,
+                "mqtt_enabled": self.mqtt is not None,
+            }
 
     # -- core check --------------------------------------------------------
 
     def check_ip(self) -> bool:
         self.check_count += 1
         self.metrics.inc("wanwatcher_checks_total")
+
+        # 1. Detection. Only a failure here counts as a check failure and feeds
+        #    outage detection / adaptive backoff.
         try:
             current_ipv4 = (
                 self.detector.get_ipv4(previous=self.state.ipv4)
@@ -129,67 +151,85 @@ class Application:
                 if self.config.monitor_ipv6
                 else None
             )
+        except Exception as exc:  # noqa: BLE001 - detection must not crash the loop
+            logger.error("Error during IP detection: %s", exc, exc_info=True)
+            self.metrics.inc("wanwatcher_check_failures_total")
+            self._handle_check_failure()
+            return False
 
-            expected_any = self.config.monitor_ipv4 or self.config.monitor_ipv6
-            if expected_any and current_ipv4 is None and current_ipv6 is None:
-                self.metrics.inc("wanwatcher_check_failures_total")
-                self._handle_check_failure()
-                return False
+        expected_any = self.config.monitor_ipv4 or self.config.monitor_ipv6
+        if expected_any and current_ipv4 is None and current_ipv6 is None:
+            self.metrics.inc("wanwatcher_check_failures_total")
+            self._handle_check_failure()
+            return False
 
-            self._handle_check_success()
-            self.last_check_at = datetime.now(timezone.utc).isoformat()
-            self.metrics.set_gauge(
-                "wanwatcher_last_check_timestamp_seconds", time.time()
+        self._handle_check_success()
+
+        # 2. Decide what changed. A None from the detector while monitoring is
+        #    enabled means "could not determine", not "address gone".
+        is_first_run = self.state.is_empty()
+        old_ipv4, old_ipv6 = self.state.ipv4, self.state.ipv6
+        ipv4_changed = self.config.monitor_ipv4 and current_ipv4 != old_ipv4
+        ipv6_changed = self.config.monitor_ipv6 and current_ipv6 != old_ipv6
+        if self.config.monitor_ipv4 and current_ipv4 is None:
+            ipv4_changed = False
+            current_ipv4 = old_ipv4
+        if self.config.monitor_ipv6 and current_ipv6 is None:
+            ipv6_changed = False
+            current_ipv6 = old_ipv6
+
+        current_ips = {"ipv4": current_ipv4, "ipv6": current_ipv6}
+        previous_ips = {"ipv4": old_ipv4, "ipv6": old_ipv6}
+        logger.info("Current IPv4: %s, IPv6: %s", current_ipv4, current_ipv6)
+        changed = is_first_run or ipv4_changed or ipv6_changed
+
+        # 3. Geo lookup (network) happens outside the state lock, only on change.
+        new_geo: Optional[Dict[str, Any]] = None
+        if changed:
+            if is_first_run:
+                logger.info("First run detected, recording initial addresses")
+            else:
+                logger.warning("IP ADDRESS CHANGE DETECTED")
+                if ipv4_changed:
+                    logger.warning("  IPv4: %s -> %s", old_ipv4, current_ipv4)
+                    self.metrics.inc("wanwatcher_ip_changes_total", {"family": "ipv4"})
+                if ipv6_changed:
+                    logger.warning("  IPv6: %s -> %s", old_ipv6, current_ipv6)
+                    self.metrics.inc("wanwatcher_ip_changes_total", {"family": "ipv6"})
+                self.metrics.set_gauge(
+                    "wanwatcher_last_change_timestamp_seconds", time.time()
+                )
+            new_geo = get_geo_data(
+                self.config.ipinfo_token, timeout=self.config.http_timeout
             )
 
-            is_first_run = self.state.is_empty()
-            old_ipv4, old_ipv6 = self.state.ipv4, self.state.ipv6
-            ipv4_changed = self.config.monitor_ipv4 and current_ipv4 != old_ipv4
-            ipv6_changed = self.config.monitor_ipv6 and current_ipv6 != old_ipv6
-
-            # A None from the detector while monitoring is enabled means
-            # "could not determine", not "address gone"; keep the stored value.
-            if self.config.monitor_ipv4 and current_ipv4 is None:
-                ipv4_changed = False
-                current_ipv4 = old_ipv4
-            if self.config.monitor_ipv6 and current_ipv6 is None:
-                ipv6_changed = False
-                current_ipv6 = old_ipv6
-
-            current_ips = {"ipv4": current_ipv4, "ipv6": current_ipv6}
-            previous_ips = {"ipv4": old_ipv4, "ipv6": old_ipv6}
-
-            logger.info("Current IPv4: %s, IPv6: %s", current_ipv4, current_ipv6)
-
-            if is_first_run or ipv4_changed or ipv6_changed:
-                if is_first_run:
-                    logger.info("First run detected, recording initial addresses")
+        # 4. Persist and update the shared state under the lock. The state file
+        #    is rewritten every check so its mtime tells the healthcheck the
+        #    loop is alive.
+        now = time.time()
+        try:
+            with self._lock:
+                self.last_check_at = datetime.now(timezone.utc).isoformat()
+                self.last_check_ts = now
+                self.metrics.set_gauge("wanwatcher_last_check_timestamp_seconds", now)
+                if changed:
+                    # Do not clobber good geo data with a failed lookup.
+                    if new_geo is not None:
+                        self.geo_data = new_geo
+                    self.state.ipv4 = current_ipv4
+                    self.state.ipv6 = current_ipv6
+                    if not is_first_run:
+                        self.store.record_change(self.state, old_ipv4, old_ipv6)
                 else:
-                    logger.warning("IP ADDRESS CHANGE DETECTED")
-                    if ipv4_changed:
-                        logger.warning("  IPv4: %s -> %s", old_ipv4, current_ipv4)
-                        self.metrics.inc(
-                            "wanwatcher_ip_changes_total", {"family": "ipv4"}
-                        )
-                    if ipv6_changed:
-                        logger.warning("  IPv6: %s -> %s", old_ipv6, current_ipv6)
-                        self.metrics.inc(
-                            "wanwatcher_ip_changes_total", {"family": "ipv6"}
-                        )
-                    self.metrics.set_gauge(
-                        "wanwatcher_last_change_timestamp_seconds", time.time()
-                    )
-
-                self.geo_data = get_geo_data(
-                    self.config.ipinfo_token, timeout=self.config.http_timeout
-                )
-
-                self.state.ipv4 = current_ipv4
-                self.state.ipv6 = current_ipv6
-                if not is_first_run:
-                    self.store.record_change(self.state, old_ipv4, old_ipv6)
+                    logger.info("No IP address changes detected")
                 self.store.save(self.state)
+        except OSError as exc:
+            logger.error("Failed to persist state: %s", exc, exc_info=True)
 
+        # 5. Side effects (network). Each is isolated so a failure is logged but
+        #    never counted as a check failure nor blocks the others.
+        if changed:
+            try:
                 results = self.notifications.send_to_all(
                     current_ips,
                     previous_ips,
@@ -203,26 +243,24 @@ class Application:
                         "wanwatcher_notifications_total",
                         {"provider": provider, "result": "ok" if ok else "error"},
                     )
-            else:
-                logger.info("No IP address changes detected")
-                # Refresh the state file timestamp so the container healthcheck
-                # can tell a live loop from a stuck one.
-                self.store.save(self.state)
+            except Exception as exc:  # noqa: BLE001
+                logger.error("Notification dispatch failed: %s", exc, exc_info=True)
 
-            if self.ddns_client is not None:
+        if self.ddns_client is not None:
+            try:
                 self.ddns_client.update(current_ipv4, current_ipv6)
+            except Exception as exc:  # noqa: BLE001
+                logger.error("DDNS update failed: %s", exc, exc_info=True)
 
-            if self.mqtt is not None:
+        if self.mqtt is not None:
+            try:
                 self.mqtt.publish_state(
                     current_ipv4, current_ipv6, self.geo_data, self.state.last_change
                 )
+            except Exception as exc:  # noqa: BLE001
+                logger.error("MQTT publish failed: %s", exc, exc_info=True)
 
-            return True
-
-        except Exception as exc:  # noqa: BLE001 - the loop must survive anything
-            logger.error("Error during IP check: %s", exc, exc_info=True)
-            self.metrics.inc("wanwatcher_check_failures_total")
-            return False
+        return True
 
     # -- outage tracking ----------------------------------------------------
 
