@@ -125,3 +125,54 @@ def test_stop_after_failed_start_is_safe():
         srv.stop()  # must not raise
     finally:
         blocker.close()
+
+
+# -- /healthz staleness -------------------------------------------------------
+
+
+def _serve(provider):
+    port = _free_port()
+    srv = StatusServer(
+        APIConfig(enabled=True, bind="127.0.0.1", port=port),
+        status_provider=provider,
+        metrics=Metrics(),
+    )
+    srv.start()
+    time.sleep(0.3)
+    return srv, port
+
+
+def test_healthz_ok_when_fresh():
+    srv, port = _serve(
+        lambda: {"seconds_since_last_check": 12.0, "check_interval": 900}
+    )
+    try:
+        status, _, body = _get(port, "/healthz")
+        assert status == 200
+        assert json.loads(body)["status"] == "ok"
+    finally:
+        srv.stop()
+
+
+def test_healthz_ok_before_first_check():
+    srv, port = _serve(
+        lambda: {"seconds_since_last_check": None, "check_interval": 900}
+    )
+    try:
+        status, _, _ = _get(port, "/healthz")
+        assert status == 200
+    finally:
+        srv.stop()
+
+
+def test_healthz_stale_returns_503():
+    srv, port = _serve(
+        lambda: {"seconds_since_last_check": 999999, "check_interval": 900}
+    )
+    try:
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            _get(port, "/healthz")
+        assert exc.value.code == 503
+        assert json.loads(exc.value.read())["status"] == "stale"
+    finally:
+        srv.stop()
