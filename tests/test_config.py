@@ -6,9 +6,12 @@ import pytest
 
 from wanwatcher.config import (
     Config,
+    SecretFileError,
     _env_bool,
     _env_int,
     _env_list,
+    _env_secret,
+    _env_secret_list,
     _env_str,
     redact,
 )
@@ -55,6 +58,52 @@ class TestEnvStr:
 
     def test_returns_default_when_unset(self):
         assert _env_str("X_MISSING", "fallback") == "fallback"
+
+
+class TestEnvSecret:
+    def test_direct_env_returned(self, monkeypatch):
+        monkeypatch.setenv("MYSECRET", "abc123")
+        assert _env_secret("MYSECRET") == "abc123"
+
+    def test_reads_from_file_stripped(self, monkeypatch, tmp_path):
+        secret = tmp_path / "s.txt"
+        secret.write_text("file-token\n", encoding="utf-8")
+        monkeypatch.setenv("MYSECRET_FILE", str(secret))
+        assert _env_secret("MYSECRET") == "file-token"
+
+    def test_direct_env_wins_over_file(self, monkeypatch, tmp_path):
+        secret = tmp_path / "s.txt"
+        secret.write_text("from-file", encoding="utf-8")
+        monkeypatch.setenv("MYSECRET", "from-env")
+        monkeypatch.setenv("MYSECRET_FILE", str(secret))
+        assert _env_secret("MYSECRET") == "from-env"
+
+    def test_missing_file_raises(self, monkeypatch, tmp_path):
+        monkeypatch.setenv("MYSECRET_FILE", str(tmp_path / "nope.txt"))
+        with pytest.raises(SecretFileError):
+            _env_secret("MYSECRET")
+
+    def test_unset_returns_default(self):
+        assert _env_secret("MYSECRET_MISSING", "fallback") == "fallback"
+
+    def test_secret_list_from_file(self, monkeypatch, tmp_path):
+        secret = tmp_path / "urls.txt"
+        secret.write_text("ntfy://h/a, gotify://h/b\n", encoding="utf-8")
+        monkeypatch.setenv("APPRISE_TEST_FILE", str(secret))
+        assert _env_secret_list("APPRISE_TEST") == ["ntfy://h/a", "gotify://h/b"]
+
+    def test_config_reads_webhook_from_file(self, monkeypatch, tmp_path):
+        secret = tmp_path / "hook.txt"
+        secret.write_text("https://discord.com/api/webhooks/1/abc\n", encoding="utf-8")
+        monkeypatch.setenv("DISCORD_ENABLED", "true")
+        monkeypatch.setenv("DISCORD_WEBHOOK_URL_FILE", str(secret))
+        cfg = Config.from_env()
+        assert cfg.discord.webhook_url == "https://discord.com/api/webhooks/1/abc"
+
+    def test_config_raises_on_missing_secret_file(self, monkeypatch, tmp_path):
+        monkeypatch.setenv("MQTT_PASSWORD_FILE", str(tmp_path / "absent"))
+        with pytest.raises(SecretFileError):
+            Config.from_env()
 
 
 class TestEnvBool:

@@ -12,9 +12,14 @@
 
 - The container runs as a dedicated non-root user (uid 1000).
 - Dependencies are pinned in `requirements.txt` and scanned in CI (Bandit,
-  Safety, Dependabot).
+  Safety, Dependabot), and the built image is scanned with Trivy before it can
+  be published.
+- Published images are signed with Cosign (keyless, via Sigstore) and ship with
+  a CycloneDX SBOM, so you can verify provenance and inspect the contents.
 - Secrets (webhook URLs, bot tokens, SMTP and MQTT passwords, Apprise URLs)
   are never written to logs; only redacted forms appear.
+- Every sensitive value can be supplied from a file via the `<NAME>_FILE`
+  convention, for native Docker and Kubernetes secret mounts.
 - The Telegram bot token is not embedded in stored URLs.
 - No inbound ports are required. The status API is off by default; when you
   enable it, you decide what to publish.
@@ -37,7 +42,7 @@ Environment variables:
 
 ```bash
 export DISCORD_WEBHOOK_URL="your_webhook"
-docker run -e DISCORD_WEBHOOK_URL ... noxied/wanwatcher:2.1.0
+docker run -e DISCORD_WEBHOOK_URL ... noxied/wanwatcher:2.2.0
 ```
 
 A `.env` file (add it to `.gitignore`):
@@ -54,8 +59,22 @@ environment:
 ```
 
 Docker secrets, or the secret management built into Portainer or Kubernetes,
-also work. What you should not do is paste real tokens into a compose file
-that lives in a git repository, or bake them into a Dockerfile with `ENV`.
+also work. The cleanest option is the `<NAME>_FILE` convention: point, for
+example, `DISCORD_WEBHOOK_URL_FILE` at a mounted secret file and the value is
+read from there, never appearing in the environment or the compose file. What
+you should not do is paste real tokens into a compose file that lives in a git
+repository, or bake them into a Dockerfile with `ENV`.
+
+## Verifying an image
+
+Published images are signed with Cosign using keyless signing. You can verify
+that an image came from this repository's CI before running it:
+
+```bash
+cosign verify noxied/wanwatcher:2.2.0 \
+  --certificate-identity-regexp "https://github.com/noxied/wanwatcher/.*" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
 
 ## Network exposure
 
@@ -86,7 +105,7 @@ Reasonable extras for the paranoid:
 ```yaml
 services:
   wanwatcher:
-    image: noxied/wanwatcher:2.1.0   # pin a version, avoid :latest
+    image: noxied/wanwatcher:2.2.0   # pin a version, avoid :latest
     security_opt:
       - no-new-privileges:true
     deploy:
