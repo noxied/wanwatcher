@@ -5,6 +5,30 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-06-13
+
+Resilience and observability improvements. No breaking changes; all new
+behaviour is either automatic or opt-in, and existing configuration keeps
+working.
+
+### Added
+
+- Optional structured JSON logging (`LOG_FORMAT=json`). Each line is a single
+  JSON object with a UTC ISO 8601 timestamp, level, logger name, and message,
+  ready for aggregators such as Loki, Datadog, or Splunk. The default stays
+  human-readable text. No new dependencies; the formatter is built on the
+  standard library.
+
+### Changed
+
+- After a failed check the monitor now uses a short adaptive backoff (starting
+  at 30 seconds, doubling, capped at `CHECK_INTERVAL`) instead of always
+  waiting the full interval, so connectivity recovery is detected sooner. The
+  steady-state interval is unchanged when checks succeed.
+- Retry and backoff delays now include random jitter, so independent instances
+  do not all retry on the same second (avoids synchronised request spikes
+  against the detection and notification services).
+
 ## [2.0.0] - 2026-06-11
 
 The application was restructured into a Python package (`wanwatcher/`). The old
