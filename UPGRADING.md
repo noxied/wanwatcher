@@ -2,6 +2,22 @@
 
 Version-specific upgrade notes. The newest upgrade path is at the top.
 
+## 2.2.x to 2.3.0
+
+No breaking changes and no required configuration. Pull the new image and
+restart:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+What changed:
+
+- New AWS Route53 DDNS provider. Set `DDNS_PROVIDER=route53` with the
+  `ROUTE53_*` variables to update Route53 records on IP changes. Existing
+  providers and configuration are untouched; this is opt-in.
+
 ## 2.1.x to 2.2.0
 
 No breaking changes and no required configuration. Pull the new image and

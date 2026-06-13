@@ -2,10 +2,10 @@ FROM python:3.14-slim
 
 LABEL maintainer="noxied"
 LABEL description="WAN IP monitoring with notifications, DDNS updates and Home Assistant integration"
-LABEL version="2.2.0"
+LABEL version="2.3.0"
 LABEL org.opencontainers.image.title="WANwatcher"
 LABEL org.opencontainers.image.description="Monitor WAN IPv4/IPv6 addresses with notifications, DDNS and MQTT"
-LABEL org.opencontainers.image.version="2.2.0"
+LABEL org.opencontainers.image.version="2.3.0"
 LABEL org.opencontainers.image.authors="noxied"
 LABEL org.opencontainers.image.url="https://github.com/noxied/wanwatcher"
 LABEL org.opencontainers.image.source="https://github.com/noxied/wanwatcher"
@@ -58,6 +58,11 @@ ENV DISCORD_ENABLED="false" \
     DYNDNS2_USERNAME="" \
     DYNDNS2_PASSWORD="" \
     DYNDNS2_HOSTNAMES="" \
+    ROUTE53_ACCESS_KEY_ID="" \
+    ROUTE53_SECRET_ACCESS_KEY="" \
+    ROUTE53_HOSTED_ZONE_ID="" \
+    ROUTE53_RECORDS="" \
+    ROUTE53_TTL="300" \
     API_ENABLED="false" \
     API_BIND="0.0.0.0" \
     API_PORT="8080" \

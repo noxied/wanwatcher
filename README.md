@@ -22,7 +22,7 @@ WANwatcher is a small Docker container that periodically checks your public IPv4
 - Multiple IP detection sources, tried in rotating order so one broken service never blocks detection
 - Change confirmation: a new IP is verified against a second source before you get notified
 - Notifications via Discord webhooks, Telegram bots, SMTP email, and Apprise (100+ services: ntfy, Gotify, Pushover, Slack, Matrix, ...)
-- Built-in dynamic DNS updates for Cloudflare, DuckDNS, and any dyndns2-compatible provider (No-IP, Dynu, ...)
+- Built-in dynamic DNS updates for Cloudflare, DuckDNS, AWS Route53, and any dyndns2-compatible provider (No-IP, Dynu, ...)
 - HTTP status API with `/healthz`, `/api/status`, and Prometheus `/metrics`
 - MQTT publishing with Home Assistant auto-discovery
 - Startup notice, optional heartbeat, and internet outage detection with a recovery notification
@@ -43,7 +43,7 @@ docker run -d \
   -e SERVER_NAME="My Server" \
   -v ./data:/data \
   -v ./logs:/logs \
-  noxied/wanwatcher:2.2.0
+  noxied/wanwatcher:2.3.0
 ```
 
 Or with compose:
@@ -51,7 +51,7 @@ Or with compose:
 ```yaml
 services:
   wanwatcher:
-    image: noxied/wanwatcher:2.2.0
+    image: noxied/wanwatcher:2.3.0
     container_name: wanwatcher
     restart: unless-stopped
     environment:
@@ -137,7 +137,7 @@ Everything is configured through environment variables. Booleans are the string 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DDNS_ENABLED` | `false` | Enable DNS updates on IP change |
-| `DDNS_PROVIDER` | (empty) | `cloudflare`, `duckdns`, or `dyndns2` |
+| `DDNS_PROVIDER` | (empty) | `cloudflare`, `duckdns`, `dyndns2`, or `route53` |
 | `CLOUDFLARE_API_TOKEN` | (empty) | API token with Zone.DNS edit permission |
 | `CLOUDFLARE_ZONE` | (empty) | Zone name, e.g. `example.com` |
 | `CLOUDFLARE_RECORDS` | (empty) | Records to update, e.g. `home.example.com,vpn.example.com` |
@@ -149,6 +149,11 @@ Everything is configured through environment variables. Booleans are the string 
 | `DYNDNS2_USERNAME` | (empty) | Username |
 | `DYNDNS2_PASSWORD` | (empty) | Password |
 | `DYNDNS2_HOSTNAMES` | (empty) | Hostnames, comma separated |
+| `ROUTE53_ACCESS_KEY_ID` | (empty) | AWS access key id |
+| `ROUTE53_SECRET_ACCESS_KEY` | (empty) | AWS secret access key |
+| `ROUTE53_HOSTED_ZONE_ID` | (empty) | Hosted zone id, e.g. `Z1234567890ABC` |
+| `ROUTE53_RECORDS` | (empty) | Records to update, comma separated |
+| `ROUTE53_TTL` | `300` | Record TTL in seconds |
 
 ### Status API
 
@@ -208,7 +213,7 @@ Supported: `DISCORD_WEBHOOK_URL_FILE`, `TELEGRAM_BOT_TOKEN_FILE`,
 ```yaml
 services:
   wanwatcher:
-    image: noxied/wanwatcher:2.2.0
+    image: noxied/wanwatcher:2.3.0
     environment:
       DISCORD_ENABLED: "true"
       DISCORD_WEBHOOK_URL_FILE: /run/secrets/discord_webhook
@@ -291,6 +296,19 @@ DYNDNS2_SERVER: "https://dynupdate.no-ip.com"
 DYNDNS2_USERNAME: "user"
 DYNDNS2_PASSWORD: "pass"
 DYNDNS2_HOSTNAMES: "home.example.com"
+```
+
+AWS Route53 (the credentials need `route53:ChangeResourceRecordSets` on the
+hosted zone; signed with SigV4, no AWS SDK is bundled):
+
+```yaml
+DDNS_ENABLED: "true"
+DDNS_PROVIDER: "route53"
+ROUTE53_ACCESS_KEY_ID: "AKIA..."
+ROUTE53_SECRET_ACCESS_KEY: "your-secret"
+ROUTE53_HOSTED_ZONE_ID: "Z1234567890ABC"
+ROUTE53_RECORDS: "home.example.com"
+ROUTE53_TTL: "300"
 ```
 
 ## Status API
