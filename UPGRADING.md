@@ -2,6 +2,25 @@
 
 Version-specific upgrade notes. The newest upgrade path is at the top.
 
+## 2.0.x to 2.1.0
+
+No breaking changes and no required configuration. Pull the new image and
+restart:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+What changed:
+
+- Optional structured JSON logging. Set `LOG_FORMAT=json` to emit one JSON
+  object per line (UTC timestamps) for log aggregators; the default stays
+  human-readable text, so doing nothing keeps the old behaviour.
+- After a failed check the monitor retries sooner (short adaptive backoff
+  capped at `CHECK_INTERVAL`) and adds jitter to retry delays. This is
+  automatic; there is nothing to configure.
+
 ## 1.x to 2.0.0
 
 v2.0.0 restructures the application into a Python package and adds a number
