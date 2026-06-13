@@ -2,6 +2,26 @@
 
 Version-specific upgrade notes. The newest upgrade path is at the top.
 
+## 2.4.x to 2.5.0
+
+No configuration changes. Pull the new image and restart:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+What changed:
+
+- `/healthz` now reports 503 when the monitoring loop is stale (no successful
+  check within a generous multiple of `CHECK_INTERVAL`). If you run with
+  `API_ENABLED=true`, the container healthcheck will now correctly mark a wedged
+  loop as unhealthy instead of healthy. `/api/status` adds
+  `seconds_since_last_check` and `check_interval`.
+- Notifier, DDNS, and MQTT errors are no longer counted as check failures, so
+  `wanwatcher_check_failures_total` now reflects only IP-detection failures.
+- Everything else is internal hardening; there is nothing to change.
+
 ## 2.4.0 to 2.4.1
 
 A security patch with no configuration changes. Pull the new image and restart:

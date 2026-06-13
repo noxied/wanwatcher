@@ -5,6 +5,33 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-06-13
+
+Reliability and code-quality hardening from the comprehensive review. No
+configuration changes are required.
+
+### Changed
+
+- `/healthz` now returns 503 when the monitor loop has gone stale (no successful
+  check within a generous multiple of `CHECK_INTERVAL`) instead of always 200,
+  so a wedged loop is reported unhealthy. `/api/status` gains
+  `seconds_since_last_check` and `check_interval`.
+- Notification, DDNS, and MQTT failures during a check are now logged with stack
+  traces and no longer counted as check failures; only detection failures drive
+  outage detection and the adaptive backoff.
+- The status snapshot served to the API is taken under a lock, preventing
+  inconsistent reads while the loop updates state.
+
+### Fixed
+
+- A failed geo lookup no longer overwrites previously known geographic data.
+
+### Internal
+
+- mypy now runs with strict optional checking (removed `--no-strict-optional`);
+  flake8 line length is aligned to 88 via a `.flake8` config; Dependabot now
+  tracks pip dependencies.
+
 ## [2.4.1] - 2026-06-13
 
 ### Security
