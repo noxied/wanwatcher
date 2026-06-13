@@ -3,15 +3,59 @@
 All configuration comes from environment variables. This module is the single
 source of truth for variable names and defaults; the validator and the
 application both read from the Config object instead of os.environ directly.
+
+Sensitive values (tokens, passwords, webhook and Apprise URLs) also support the
+``<NAME>_FILE`` convention: point it at a file (a Docker or Kubernetes secret
+mount) and the value is read from there. A ``_FILE`` path that does not exist
+raises at startup so a misconfigured secret fails fast instead of silently
+running without it.
 """
 
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import List, Optional
+
+
+class SecretFileError(Exception):
+    """Raised when a <NAME>_FILE points to a file that cannot be read."""
 
 
 def _env_str(name: str, default: str = "") -> str:
     return os.environ.get(name, default).strip()
+
+
+def _env_secret(name: str, default: str = "") -> str:
+    """Read a sensitive value from ``NAME`` or, failing that, ``NAME_FILE``.
+
+    A direct environment variable wins and is returned verbatim. When only the
+    ``_FILE`` variant is set, the file is read and stripped of surrounding
+    whitespace (secret files often end with a newline). A missing ``_FILE``
+    path raises SecretFileError so startup fails fast and clearly.
+    """
+    if name in os.environ:
+        return os.environ[name]
+    file_key = f"{name}_FILE"
+    file_path = os.environ.get(file_key, "").strip()
+    if file_path:
+        path = Path(file_path)
+        if not path.is_file():
+            raise SecretFileError(
+                f"{file_key} points to a file that does not exist: {file_path}"
+            )
+        try:
+            return path.read_text(encoding="utf-8").strip()
+        except OSError as exc:
+            raise SecretFileError(
+                f"{file_key} could not be read ({file_path}): {exc}"
+            ) from exc
+    return default
+
+
+def _env_secret_list(name: str, default: str = "") -> List[str]:
+    """Comma-separated secret list, with the same ``_FILE`` support."""
+    raw = _env_secret(name, default)
+    return [item.strip() for item in raw.split(",") if item.strip()]
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -46,7 +90,7 @@ class DiscordConfig:
     def from_env(cls) -> "DiscordConfig":
         return cls(
             enabled=_env_bool("DISCORD_ENABLED"),
-            webhook_url=_env_str("DISCORD_WEBHOOK_URL"),
+            webhook_url=_env_secret("DISCORD_WEBHOOK_URL"),
             avatar_url=_env_str("DISCORD_AVATAR_URL"),
         )
 
@@ -62,7 +106,7 @@ class TelegramConfig:
     def from_env(cls) -> "TelegramConfig":
         return cls(
             enabled=_env_bool("TELEGRAM_ENABLED"),
-            bot_token=_env_str("TELEGRAM_BOT_TOKEN"),
+            bot_token=_env_secret("TELEGRAM_BOT_TOKEN"),
             chat_id=_env_str("TELEGRAM_CHAT_ID"),
             parse_mode=_env_str("TELEGRAM_PARSE_MODE", "HTML") or "HTML",
         )
@@ -88,7 +132,7 @@ class EmailConfig:
             smtp_host=_env_str("EMAIL_SMTP_HOST"),
             smtp_port=_env_int("EMAIL_SMTP_PORT", 587),
             smtp_user=_env_str("EMAIL_SMTP_USER"),
-            smtp_password=os.environ.get("EMAIL_SMTP_PASSWORD", ""),
+            smtp_password=_env_secret("EMAIL_SMTP_PASSWORD"),
             from_addr=_env_str("EMAIL_FROM"),
             to_addrs=_env_list("EMAIL_TO"),
             use_tls=_env_bool("EMAIL_USE_TLS", True),
@@ -113,7 +157,7 @@ class AppriseConfig:
     def from_env(cls) -> "AppriseConfig":
         return cls(
             enabled=_env_bool("APPRISE_ENABLED"),
-            urls=_env_list("APPRISE_URLS"),
+            urls=_env_secret_list("APPRISE_URLS"),
         )
 
 
@@ -128,7 +172,7 @@ class CloudflareConfig:
     @classmethod
     def from_env(cls) -> "CloudflareConfig":
         return cls(
-            api_token=os.environ.get("CLOUDFLARE_API_TOKEN", "").strip(),
+            api_token=_env_secret("CLOUDFLARE_API_TOKEN"),
             zone=_env_str("CLOUDFLARE_ZONE"),
             records=_env_list("CLOUDFLARE_RECORDS"),
             proxied=_env_bool("CLOUDFLARE_PROXIED", False),
@@ -144,7 +188,7 @@ class DuckDNSConfig:
     @classmethod
     def from_env(cls) -> "DuckDNSConfig":
         return cls(
-            token=os.environ.get("DUCKDNS_TOKEN", "").strip(),
+            token=_env_secret("DUCKDNS_TOKEN"),
             domains=_env_list("DUCKDNS_DOMAINS"),
         )
 
@@ -163,7 +207,7 @@ class DynDNS2Config:
         return cls(
             server=_env_str("DYNDNS2_SERVER"),
             username=_env_str("DYNDNS2_USERNAME"),
-            password=os.environ.get("DYNDNS2_PASSWORD", ""),
+            password=_env_secret("DYNDNS2_PASSWORD"),
             hostnames=_env_list("DYNDNS2_HOSTNAMES"),
         )
 
@@ -222,7 +266,7 @@ class MQTTConfig:
             host=_env_str("MQTT_HOST"),
             port=_env_int("MQTT_PORT", 1883),
             username=_env_str("MQTT_USERNAME"),
-            password=os.environ.get("MQTT_PASSWORD", ""),
+            password=_env_secret("MQTT_PASSWORD"),
             client_id=_env_str("MQTT_CLIENT_ID", "wanwatcher") or "wanwatcher",
             topic_prefix=_env_str("MQTT_TOPIC_PREFIX", "wanwatcher") or "wanwatcher",
             tls=_env_bool("MQTT_TLS", False),
@@ -306,7 +350,7 @@ class Config:
             log_file=_env_str("LOG_FILE", "/logs/wanwatcher.log")
             or "/logs/wanwatcher.log",
             log_format=_env_str("LOG_FORMAT", "text").lower() or "text",
-            ipinfo_token=os.environ.get("IPINFO_TOKEN", "").strip(),
+            ipinfo_token=_env_secret("IPINFO_TOKEN"),
             http_timeout=_env_int("HTTP_TIMEOUT", 10),
             change_confirmation=_env_bool("IP_CHANGE_CONFIRMATION", True),
             discord=DiscordConfig.from_env(),

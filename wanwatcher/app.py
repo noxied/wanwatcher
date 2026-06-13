@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from wanwatcher import VERSION
-from wanwatcher.config import Config
+from wanwatcher.config import Config, SecretFileError
 from wanwatcher.detector import IPDetector
 from wanwatcher.geo import get_geo_data
 from wanwatcher.logconfig import configure_logging
@@ -435,7 +435,15 @@ class Application:
 
 
 def main() -> None:
-    config = Config.from_env()
+    try:
+        config = Config.from_env()
+    except SecretFileError as exc:
+        # Logging is not configured yet (its path comes from the config we just
+        # failed to load), so report to stderr and fail fast with exit 1.
+        logging.basicConfig(level=logging.ERROR, format="%(levelname)s - %(message)s")
+        logging.error("Configuration error: %s", exc)
+        sys.exit(1)
+
     setup_logging(config.log_file, config.log_format)
 
     logger.info("Validating configuration...")
