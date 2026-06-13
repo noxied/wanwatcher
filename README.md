@@ -43,7 +43,7 @@ docker run -d \
   -e SERVER_NAME="My Server" \
   -v ./data:/data \
   -v ./logs:/logs \
-  noxied/wanwatcher:2.0.0
+  noxied/wanwatcher:2.1.0
 ```
 
 Or with compose:
@@ -51,7 +51,7 @@ Or with compose:
 ```yaml
 services:
   wanwatcher:
-    image: noxied/wanwatcher:2.0.0
+    image: noxied/wanwatcher:2.1.0
     container_name: wanwatcher
     restart: unless-stopped
     environment:
@@ -91,6 +91,7 @@ Everything is configured through environment variables. Booleans are the string 
 | `HTTP_TIMEOUT` | `10` | Timeout in seconds for outbound HTTP requests |
 | `IP_DB_FILE` | `/data/ipinfo.db` | State file path |
 | `LOG_FILE` | `/logs/wanwatcher.log` | Log file path |
+| `LOG_FORMAT` | `text` | `text` for human-readable logs, or `json` for structured logs (one JSON object per line, UTC timestamps) for log aggregators like Loki or Datadog |
 
 ### Discord
 

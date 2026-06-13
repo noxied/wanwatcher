@@ -2,10 +2,10 @@ FROM python:3.14-slim
 
 LABEL maintainer="noxied"
 LABEL description="WAN IP monitoring with notifications, DDNS updates and Home Assistant integration"
-LABEL version="2.0.0"
+LABEL version="2.1.0"
 LABEL org.opencontainers.image.title="WANwatcher"
 LABEL org.opencontainers.image.description="Monitor WAN IPv4/IPv6 addresses with notifications, DDNS and MQTT"
-LABEL org.opencontainers.image.version="2.0.0"
+LABEL org.opencontainers.image.version="2.1.0"
 LABEL org.opencontainers.image.authors="noxied"
 LABEL org.opencontainers.image.url="https://github.com/noxied/wanwatcher"
 LABEL org.opencontainers.image.source="https://github.com/noxied/wanwatcher"
@@ -83,6 +83,7 @@ ENV DISCORD_ENABLED="false" \
     SERVER_NAME="WANwatcher Docker" \
     IP_DB_FILE="/data/ipinfo.db" \
     LOG_FILE="/logs/wanwatcher.log" \
+    LOG_FORMAT="text" \
     BOT_NAME="WANwatcher" \
     CHECK_INTERVAL="900" \
     HTTP_TIMEOUT="10" \

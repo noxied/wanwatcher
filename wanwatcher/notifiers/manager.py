@@ -27,7 +27,10 @@ class NotificationManager:
             # functools.partial binds the current provider, avoiding the
             # late-binding closure trap of a bare lambda in the loop.
             success = retry_with_backoff(
-                functools.partial(call, provider), max_retries=3, base_delay=2.0
+                functools.partial(call, provider),
+                max_retries=3,
+                base_delay=2.0,
+                jitter=1.0,
             )
             results[provider_name] = success
             if success:
