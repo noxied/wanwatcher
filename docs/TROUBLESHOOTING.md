@@ -293,7 +293,7 @@ creating datasets for `/data` and `/logs`.
 Synology: create the shared folders in File Station first, give uid 1000
 write access, and use absolute paths in Container Manager.
 
-Raspberry Pi: the published image is multi-arch; `noxied/wanwatcher:2.3.0`
+Raspberry Pi: the published image is multi-arch; `noxied/wanwatcher:2.4.0`
 pulls the ARM64 variant automatically on a 64-bit OS. 32-bit ARM is not
 published; build locally if you need it.
 

@@ -2,6 +2,13 @@
 
 Version-specific upgrade notes. The newest upgrade path is at the top.
 
+## 2.3.x to 2.4.0
+
+No breaking changes and nothing to configure. The application image is
+functionally identical to 2.3.0; this release adds repository and supply-chain
+tooling (OpenSSF Scorecard, SBOM attached to releases). Pull the new image if
+you want the matching version label, otherwise no action is needed.
+
 ## 2.2.x to 2.3.0
 
 No breaking changes and no required configuration. Pull the new image and
