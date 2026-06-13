@@ -340,10 +340,18 @@ jobs:
           VERSION=${{ steps.version.outputs.VERSION }}
           awk "/## \[${VERSION}\]/,/## \[/" CHANGELOG.md | grep -v "## \[" > release_notes.md || echo "See CHANGELOG.md for details" > release_notes.md
 
+      # Pull the SBOM produced by the docker-push job in this run so it can be
+      # attached to the release as a provenance artifact.
+      - name: Download SBOM
+        uses: actions/download-artifact@v6
+        with:
+          name: wanwatcher-sbom
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           body_path: release_notes.md
+          files: wanwatcher-sbom.json
           draft: false
           prerelease: false
         env:

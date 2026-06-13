@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-06-13
+
+Supply-chain and provenance tooling. No application code changes; the image is
+functionally identical to 2.3.0.
+
+### Added
+
+- OpenSSF Scorecard analysis runs in CI (weekly and on push to main),
+  publishing results to the Security tab and the public OpenSSF API, with a
+  badge in the README.
+- The CycloneDX SBOM is now attached to each GitHub release as a downloadable
+  asset, in addition to the per-run workflow artifact.
+
 ## [2.3.0] - 2026-06-13
 
 ### Added

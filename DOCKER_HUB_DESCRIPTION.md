@@ -66,8 +66,8 @@ Operations
 
 | Architecture | Tags | Status |
 |--------------|------|--------|
-| x86-64 (AMD64) | `latest`, `2.3.0` | Supported |
-| ARM64 (aarch64) | `latest`, `2.3.0` | Supported |
+| x86-64 (AMD64) | `latest`, `2.4.0` | Supported |
+| ARM64 (aarch64) | `latest`, `2.4.0` | Supported |
 
 Docker pulls the correct image for your platform automatically. ARM64 covers
 Raspberry Pi 4 and newer, Apple Silicon, and AWS Graviton.
@@ -94,7 +94,7 @@ docker run -d \
   -e SERVER_NAME="My Server" \
   -v ./data:/data \
   -v ./logs:/logs \
-  noxied/wanwatcher:2.3.0
+  noxied/wanwatcher:2.4.0
 ```
 
 ### docker compose
@@ -102,7 +102,7 @@ docker run -d \
 ```yaml
 services:
   wanwatcher:
-    image: noxied/wanwatcher:2.3.0
+    image: noxied/wanwatcher:2.4.0
     container_name: wanwatcher
     restart: unless-stopped
     environment:
@@ -344,7 +344,7 @@ docker buildx build \
 
 | Tag | Meaning |
 |-----|---------|
-| `2.3.0` | This exact release |
+| `2.4.0` | This exact release |
 | `2.0` | Latest 2.0.x patch |
 | `2` | Latest 2.x release |
 | `latest` | Latest stable release |
