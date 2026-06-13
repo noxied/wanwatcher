@@ -14,29 +14,16 @@ aimed at homelabs and small servers on connections where the ISP changes your IP
 
 ---
 
-## What's new in 2.1.0
+## Recent releases
 
-- Optional structured JSON logging (`LOG_FORMAT=json`) for aggregators like Loki, Datadog or Splunk. Default stays plain text.
-- Adaptive backoff after a failed check (recovery is detected sooner), with jitter to avoid synchronised request spikes.
+- 2.3.0: AWS Route53 DDNS provider (SigV4, no AWS SDK bundled).
+- 2.2.0: secrets from files (`<NAME>_FILE`), plus Trivy scanning, CycloneDX SBOM and Cosign keyless image signing.
+- 2.1.0: optional JSON logging (`LOG_FORMAT=json`) and adaptive backoff with jitter.
+- 2.0.0: rebuilt as a Python package with Apprise, multi-source detection, DDNS, status API/metrics, MQTT/Home Assistant, events, and a non-root container.
 
-No breaking changes from 2.0; everything above is automatic or opt-in.
-
-## What's new in 2.0.0
-
-The application was rebuilt as a Python package. Existing 1.x environment
-variables keep working and the state file migrates automatically.
-
-- Apprise notifications, which add 100+ services (ntfy, Gotify, Pushover, Slack, Matrix, and more) through a single setting
-- Multi-source IP detection with source rotation and confirmation of a change by a second source before notifying
-- Built-in dynamic DNS updates for Cloudflare, DuckDNS, and dyndns2 providers (No-IP, Dynu)
-- HTTP status API with `/healthz`, `/api/status`, and Prometheus `/metrics`
-- MQTT publishing with Home Assistant auto-discovery
-- Startup, heartbeat, and internet outage/recovery events
-- Graceful shutdown on SIGTERM, atomic state writes, a real healthcheck, and a non-root container (uid 1000)
-
-One breaking change: the container now runs as uid 1000, so the host
-directories mounted on `/data` and `/logs` must be writable by that user. See
-the [upgrade guide](https://github.com/noxied/wanwatcher/blob/main/UPGRADING.md).
+Coming from 1.x, the one breaking change is that the container runs as uid 1000,
+so the `/data` and `/logs` volumes must be writable by that user. See the
+[upgrade guide](https://github.com/noxied/wanwatcher/blob/main/UPGRADING.md).
 
 [Full changelog](https://github.com/noxied/wanwatcher/blob/main/CHANGELOG.md)
 
@@ -56,7 +43,7 @@ IP detection
 - A detected change is confirmed against a second source before you are notified
 
 Dynamic DNS
-- Cloudflare (API token), DuckDNS, and any dyndns2-compatible provider
+- Cloudflare (API token), DuckDNS, AWS Route53, and any dyndns2-compatible provider
 - Failed updates are retried on the next check
 
 Observability
@@ -79,8 +66,8 @@ Operations
 
 | Architecture | Tags | Status |
 |--------------|------|--------|
-| x86-64 (AMD64) | `latest`, `2.1.0` | Supported |
-| ARM64 (aarch64) | `latest`, `2.1.0` | Supported |
+| x86-64 (AMD64) | `latest`, `2.3.0` | Supported |
+| ARM64 (aarch64) | `latest`, `2.3.0` | Supported |
 
 Docker pulls the correct image for your platform automatically. ARM64 covers
 Raspberry Pi 4 and newer, Apple Silicon, and AWS Graviton.
@@ -107,7 +94,7 @@ docker run -d \
   -e SERVER_NAME="My Server" \
   -v ./data:/data \
   -v ./logs:/logs \
-  noxied/wanwatcher:2.1.0
+  noxied/wanwatcher:2.3.0
 ```
 
 ### docker compose
@@ -115,7 +102,7 @@ docker run -d \
 ```yaml
 services:
   wanwatcher:
-    image: noxied/wanwatcher:2.1.0
+    image: noxied/wanwatcher:2.3.0
     container_name: wanwatcher
     restart: unless-stopped
     environment:
@@ -184,7 +171,7 @@ APPRISE_URLS: "ntfy://ntfy.sh/my-topic,pover://user@token"
 
 ```yaml
 DDNS_ENABLED: "true"
-DDNS_PROVIDER: "cloudflare"     # cloudflare | duckdns | dyndns2
+DDNS_PROVIDER: "cloudflare"     # cloudflare | duckdns | dyndns2 | route53
 
 # Cloudflare
 CLOUDFLARE_API_TOKEN: "token-with-zone-dns-edit"
@@ -201,6 +188,12 @@ DYNDNS2_SERVER: "https://dynupdate.no-ip.com"
 DYNDNS2_USERNAME: "user"
 DYNDNS2_PASSWORD: "password"
 DYNDNS2_HOSTNAMES: "host.example.com"
+
+# AWS Route53 (creds need route53:ChangeResourceRecordSets on the zone)
+ROUTE53_ACCESS_KEY_ID: "AKIA..."
+ROUTE53_SECRET_ACCESS_KEY: "your-secret"
+ROUTE53_HOSTED_ZONE_ID: "Z1234567890ABC"
+ROUTE53_RECORDS: "home.example.com"
 ```
 
 ### Status API and MQTT
@@ -351,7 +344,7 @@ docker buildx build \
 
 | Tag | Meaning |
 |-----|---------|
-| `2.1.0` | This exact release |
+| `2.3.0` | This exact release |
 | `2.0` | Latest 2.0.x patch |
 | `2` | Latest 2.x release |
 | `latest` | Latest stable release |
@@ -362,6 +355,8 @@ docker buildx build \
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 2.3.0 | 2026-06-13 | AWS Route53 DDNS provider |
+| 2.2.0 | 2026-06-13 | Secrets from files, Trivy/SBOM/Cosign supply-chain security |
 | 2.1.0 | 2026-06-13 | Optional JSON logging (LOG_FORMAT), adaptive backoff with jitter |
 | 2.0.0 | 2026-06-11 | Package rewrite, Apprise, multi-source detection, DDNS, status API and metrics, MQTT and Home Assistant, events, non-root container |
 | 1.4.1 | 2025-11-02 | Python 3.14, code quality and security fixes, smaller image |

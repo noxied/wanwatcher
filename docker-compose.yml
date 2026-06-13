@@ -61,7 +61,7 @@ services:
       # Dynamic DNS - update DNS records when the IP changes
       # ========================================================================
       DDNS_ENABLED: "false"
-      DDNS_PROVIDER: ""                 # cloudflare | duckdns | dyndns2
+      DDNS_PROVIDER: ""                 # cloudflare | duckdns | dyndns2 | route53
       # Cloudflare
       CLOUDFLARE_API_TOKEN: ""          # Token with Zone.DNS edit permission
       CLOUDFLARE_ZONE: ""               # e.g. example.com
@@ -75,6 +75,12 @@ services:
       DYNDNS2_USERNAME: ""
       DYNDNS2_PASSWORD: ""
       DYNDNS2_HOSTNAMES: ""
+      # AWS Route53 (creds need route53:ChangeResourceRecordSets on the zone)
+      ROUTE53_ACCESS_KEY_ID: ""
+      ROUTE53_SECRET_ACCESS_KEY: ""
+      ROUTE53_HOSTED_ZONE_ID: ""        # e.g. Z1234567890ABC
+      ROUTE53_RECORDS: ""               # e.g. home.example.com
+      ROUTE53_TTL: "300"
 
       # ========================================================================
       # Status API - /healthz, /api/status and Prometheus /metrics
