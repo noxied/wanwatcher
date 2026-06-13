@@ -7,11 +7,13 @@ from wanwatcher.config import (
     DDNSConfig,
     DuckDNSConfig,
     DynDNS2Config,
+    Route53Config,
 )
 from wanwatcher.ddns import build_ddns_client
 from wanwatcher.ddns.cloudflare import CloudflareClient
 from wanwatcher.ddns.duckdns import DuckDNSClient
 from wanwatcher.ddns.dyndns2 import DynDNS2Client
+from wanwatcher.ddns.route53 import Route53Client, sigv4_headers
 from wanwatcher.metrics import Metrics
 
 # -- builder ----------------------------------------------------------------
@@ -234,3 +236,108 @@ def test_cloudflare_zone_failure_marks_all_failed(mock_req):
     client = _cf()
     result = client.update("1.2.3.4", None)
     assert result == {"home.example.com/A": False}
+
+
+# -- Route53 ----------------------------------------------------------------
+
+
+def _r53(records=None):
+    return Route53Client(
+        Route53Config(
+            access_key_id="AKIAEXAMPLE",
+            secret_access_key="secret",
+            hosted_zone_id="Z123ABC",
+            records=records or ["home.example.com"],
+            ttl=300,
+        )
+    )
+
+
+def test_build_route53_ok():
+    cfg = DDNSConfig(
+        enabled=True,
+        provider="route53",
+        route53=Route53Config(
+            access_key_id="AKIA",
+            secret_access_key="s",
+            hosted_zone_id="Z1",
+            records=["home.example.com"],
+        ),
+    )
+    assert isinstance(build_ddns_client(cfg), Route53Client)
+
+
+def test_build_route53_missing_fields_returns_none():
+    cfg = DDNSConfig(
+        enabled=True,
+        provider="route53",
+        route53=Route53Config(access_key_id="AKIA"),  # missing the rest
+    )
+    assert build_ddns_client(cfg) is None
+
+
+def test_route53_zone_id_strips_prefix():
+    client = Route53Client(
+        Route53Config(
+            access_key_id="A",
+            secret_access_key="s",
+            hosted_zone_id="/hostedzone/Z999",
+            records=["a.example.com"],
+        )
+    )
+    assert client.zone_id == "Z999"
+
+
+def test_sigv4_headers_deterministic():
+    now = __import__("datetime").datetime(
+        2026, 6, 13, 12, 0, 0, tzinfo=__import__("datetime").timezone.utc
+    )
+    h1 = sigv4_headers(
+        "AKIA", "secret", "/2013-04-01/hostedzone/Z1/rrset", b"<x/>", now
+    )
+    h2 = sigv4_headers(
+        "AKIA", "secret", "/2013-04-01/hostedzone/Z1/rrset", b"<x/>", now
+    )
+    assert h1 == h2
+    assert h1["Authorization"].startswith("AWS4-HMAC-SHA256 Credential=AKIA/20260613/")
+    assert "SignedHeaders=host;x-amz-content-sha256;x-amz-date" in h1["Authorization"]
+    assert h1["x-amz-date"] == "20260613T120000Z"
+
+
+@patch("wanwatcher.ddns.route53.requests.post")
+def test_route53_upsert_success(mock_post):
+    mock_post.return_value = MagicMock(status_code=200, text="<ChangeInfo/>")
+    client = _r53(["home.example.com"])
+    result = client.update("1.2.3.4", "2001:db8::1")
+    assert result == {"home.example.com/A": True, "home.example.com/AAAA": True}
+    body = mock_post.call_args.kwargs["data"].decode("utf-8")
+    assert "<Action>UPSERT</Action>" in body
+    assert "<Type>A</Type>" in body and "<Type>AAAA</Type>" in body
+    assert "1.2.3.4" in body and "2001:db8::1" in body
+    # signed request
+    assert "Authorization" in mock_post.call_args.kwargs["headers"]
+
+
+@patch("wanwatcher.ddns.route53.requests.post")
+def test_route53_failure_marks_families(mock_post):
+    mock_post.return_value = MagicMock(status_code=403, text="<Error>denied</Error>")
+    client = _r53(["home.example.com"])
+    assert client.update("1.2.3.4", None) == {"home.example.com/A": False}
+
+
+@patch("wanwatcher.ddns.route53.requests.post")
+def test_route53_network_error_never_raises(mock_post):
+    import requests as _r
+
+    mock_post.side_effect = _r.RequestException("boom")
+    client = _r53(["home.example.com"])
+    assert client.update("1.2.3.4", None) == {"home.example.com/A": False}
+
+
+@patch("wanwatcher.ddns.route53.requests.post")
+def test_route53_only_one_request_for_batch(mock_post):
+    mock_post.return_value = MagicMock(status_code=200, text="<ChangeInfo/>")
+    client = _r53(["a.example.com", "b.example.com"])
+    client.update("1.2.3.4", None)
+    # all records in a single atomic ChangeBatch
+    assert mock_post.call_count == 1
