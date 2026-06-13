@@ -276,6 +276,7 @@ class Config:
     monitor_ipv6: bool = True
     ip_db_file: str = "/data/ipinfo.db"
     log_file: str = "/logs/wanwatcher.log"
+    log_format: str = "text"  # "text" or "json"
     ipinfo_token: str = ""
     http_timeout: int = 10
     # When the detected IP differs from the stored one, confirm the change
@@ -304,6 +305,7 @@ class Config:
             ip_db_file=_env_str("IP_DB_FILE", "/data/ipinfo.db") or "/data/ipinfo.db",
             log_file=_env_str("LOG_FILE", "/logs/wanwatcher.log")
             or "/logs/wanwatcher.log",
+            log_format=_env_str("LOG_FORMAT", "text").lower() or "text",
             ipinfo_token=os.environ.get("IPINFO_TOKEN", "").strip(),
             http_timeout=_env_int("HTTP_TIMEOUT", 10),
             change_confirmation=_env_bool("IP_CHANGE_CONFIRMATION", True),

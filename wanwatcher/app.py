@@ -2,6 +2,7 @@
 DDNS, MQTT and the status API in a signal-aware monitoring loop."""
 
 import logging
+import random
 import signal
 import sys
 import threading
@@ -13,6 +14,7 @@ from wanwatcher import VERSION
 from wanwatcher.config import Config
 from wanwatcher.detector import IPDetector
 from wanwatcher.geo import get_geo_data
+from wanwatcher.logconfig import configure_logging
 from wanwatcher.metrics import Metrics
 from wanwatcher.notifiers import build_manager
 from wanwatcher.state import State, StateStore
@@ -22,19 +24,15 @@ logger = logging.getLogger(__name__)
 
 LEGACY_UPDATE_NOTIFIED_FILE = "/data/update_notified.txt"
 
+# Adaptive backoff after a failed check: start short and grow, capped at the
+# normal interval, with jitter so independent instances do not retry in lockstep.
+FAILURE_BACKOFF_BASE = 30  # seconds, first retry delay after a failed check
+JITTER_MIN = 1.0
+JITTER_MAX = 3.0
 
-def setup_logging(log_file: str) -> None:
-    import os
 
-    log_dir = os.path.dirname(log_file)
-    if log_dir:
-        os.makedirs(log_dir, exist_ok=True)
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-        handlers=[logging.FileHandler(log_file), logging.StreamHandler(sys.stdout)],
-    )
+def setup_logging(log_file: str, log_format: str = "text") -> None:
+    configure_logging(log_file, log_format)
 
 
 class Application:
@@ -322,6 +320,25 @@ class Application:
             severity="info",
         )
 
+    # -- scheduling ----------------------------------------------------------
+
+    def _jitter(self) -> float:
+        return random.uniform(JITTER_MIN, JITTER_MAX)
+
+    def _next_wait(self) -> float:
+        """Seconds to wait before the next check.
+
+        Steady state is the configured interval. After one or more failed
+        checks, fall back to a short exponential backoff (capped at the
+        interval) plus jitter, so connectivity recovery is noticed sooner and
+        many instances do not all retry on the same second.
+        """
+        if self.consecutive_failures <= 0:
+            return float(self.config.check_interval)
+        backoff = FAILURE_BACKOFF_BASE * (2 ** (self.consecutive_failures - 1))
+        capped = min(self.config.check_interval, backoff)
+        return capped + self._jitter()
+
     # -- lifecycle ------------------------------------------------------------
 
     def startup_banner(self) -> None:
@@ -385,7 +402,15 @@ class Application:
         logger.info(
             "Monitoring continuously (every %d seconds)", self.config.check_interval
         )
-        while not self.shutdown_event.wait(timeout=self.config.check_interval):
+        while True:
+            wait = self._next_wait()
+            if self.consecutive_failures > 0:
+                logger.info(
+                    "Last check failed; next attempt in %.0fs (adaptive backoff)",
+                    wait,
+                )
+            if self.shutdown_event.wait(timeout=wait):
+                break
             try:
                 logger.info("Performing check #%d...", self.check_count + 1)
                 self.check_ip()
@@ -411,7 +436,7 @@ class Application:
 
 def main() -> None:
     config = Config.from_env()
-    setup_logging(config.log_file)
+    setup_logging(config.log_file, config.log_format)
 
     logger.info("Validating configuration...")
     from wanwatcher.validation import validate_config

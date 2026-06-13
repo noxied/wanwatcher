@@ -113,6 +113,35 @@ def test_run_exits_promptly_when_shutdown_set(app, monkeypatch):
     assert rc == 0
 
 
+def test_next_wait_steady_state(app):
+    # No failures: wait the full configured interval.
+    app.consecutive_failures = 0
+    assert app._next_wait() == float(app.config.check_interval)
+
+
+def test_next_wait_backoff_grows(app, monkeypatch):
+    monkeypatch.setattr(app, "_jitter", lambda: 0.0)
+    app.consecutive_failures = 1
+    assert app._next_wait() == 30
+    app.consecutive_failures = 2
+    assert app._next_wait() == 60
+    app.consecutive_failures = 3
+    assert app._next_wait() == 120
+
+
+def test_next_wait_capped_at_interval(app, monkeypatch):
+    monkeypatch.setattr(app, "_jitter", lambda: 0.0)
+    # Many failures must never wait longer than the normal interval.
+    app.consecutive_failures = 20
+    assert app._next_wait() == float(app.config.check_interval)
+
+
+def test_next_wait_includes_jitter(app, monkeypatch):
+    monkeypatch.setattr(app, "_jitter", lambda: 2.5)
+    app.consecutive_failures = 1
+    assert app._next_wait() == 32.5
+
+
 def test_heartbeat_emitted_when_due(config):
     config.events = EventsConfig(
         heartbeat_enabled=True, heartbeat_interval=0, notify_on_startup=False

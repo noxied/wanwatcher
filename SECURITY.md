@@ -37,7 +37,7 @@ Environment variables:
 
 ```bash
 export DISCORD_WEBHOOK_URL="your_webhook"
-docker run -e DISCORD_WEBHOOK_URL ... noxied/wanwatcher:2.0.0
+docker run -e DISCORD_WEBHOOK_URL ... noxied/wanwatcher:2.1.0
 ```
 
 A `.env` file (add it to `.gitignore`):
@@ -86,7 +86,7 @@ Reasonable extras for the paranoid:
 ```yaml
 services:
   wanwatcher:
-    image: noxied/wanwatcher:2.0.0   # pin a version, avoid :latest
+    image: noxied/wanwatcher:2.1.0   # pin a version, avoid :latest
     security_opt:
       - no-new-privileges:true
     deploy:

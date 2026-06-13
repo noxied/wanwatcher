@@ -1,6 +1,6 @@
 services:
   wanwatcher:
-    image: noxied/wanwatcher:2.0.0
+    image: noxied/wanwatcher:2.1.0
     container_name: wanwatcher
     restart: unless-stopped
 
@@ -20,6 +20,8 @@ services:
       IP_CHANGE_CONFIRMATION: "true"
       # Optional ipinfo.io token for geographic data
       IPINFO_TOKEN: ""
+      # Log format: "text" (default) or "json" for log aggregators
+      LOG_FORMAT: "text"
 
       # ========================================================================
       # Discord
