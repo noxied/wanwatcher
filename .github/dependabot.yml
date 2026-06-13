@@ -17,3 +17,12 @@ updates:
     labels:
       - "dependencies"
       - "docker"
+
+  # Python (pinned runtime deps in requirements.txt and dev tools)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "python"
