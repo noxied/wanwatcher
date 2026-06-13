@@ -24,7 +24,7 @@ _EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 # Token part is typically 35 chars but can vary (allow 30-50)
 _TELEGRAM_TOKEN_PATTERN = re.compile(r"^\d{8,10}:[A-Za-z0-9_-]{30,50}$")
 
-_DDNS_PROVIDERS = ("cloudflare", "duckdns", "dyndns2")
+_DDNS_PROVIDERS = ("cloudflare", "duckdns", "dyndns2", "route53")
 _TELEGRAM_PARSE_MODES = ("HTML", "Markdown", "MarkdownV2")
 
 
@@ -280,6 +280,8 @@ class ConfigValidator:
             return self._validate_ddns_cloudflare()
         if ddns.provider == "duckdns":
             return self._validate_ddns_duckdns()
+        if ddns.provider == "route53":
+            return self._validate_ddns_route53()
         return self._validate_ddns_dyndns2()
 
     def _validate_ddns_cloudflare(self) -> bool:
@@ -363,6 +365,42 @@ class ConfigValidator:
             self.errors.append(
                 "DDNS provider is dyndns2 but DYNDNS2_HOSTNAMES is not set"
             )
+            ok = False
+
+        return ok
+
+    def _validate_ddns_route53(self) -> bool:
+        route53 = self.config.ddns.route53
+        ok = True
+
+        # Reduce to presence booleans first so the secret access key never
+        # enters a structure the loop walks over (avoids a clear-text-logging
+        # false positive from static analysis).
+        required_present = (
+            ("ROUTE53_ACCESS_KEY_ID", bool(route53.access_key_id)),
+            ("ROUTE53_SECRET_ACCESS_KEY", bool(route53.secret_access_key)),
+            ("ROUTE53_HOSTED_ZONE_ID", bool(route53.hosted_zone_id)),
+        )
+        for name, present in required_present:
+            if not present:
+                self.errors.append(f"DDNS provider is route53 but {name} is not set")
+                ok = False
+
+        if not route53.records:
+            self.errors.append(
+                "DDNS provider is route53 but ROUTE53_RECORDS is not set"
+            )
+            ok = False
+        else:
+            for record in route53.records:
+                if "." not in record:
+                    self.warnings.append(
+                        f"ROUTE53_RECORDS entry '{record}' is not a fully "
+                        "qualified domain name"
+                    )
+
+        if route53.ttl < 1:
+            self.errors.append("ROUTE53_TTL must be a positive number of seconds")
             ok = False
 
         return ok
