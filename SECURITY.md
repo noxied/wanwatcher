@@ -42,7 +42,7 @@ Environment variables:
 
 ```bash
 export DISCORD_WEBHOOK_URL="your_webhook"
-docker run -e DISCORD_WEBHOOK_URL ... noxied/wanwatcher:2.3.0
+docker run -e DISCORD_WEBHOOK_URL ... noxied/wanwatcher:2.4.0
 ```
 
 A `.env` file (add it to `.gitignore`):
@@ -71,7 +71,7 @@ Published images are signed with Cosign using keyless signing. You can verify
 that an image came from this repository's CI before running it:
 
 ```bash
-cosign verify noxied/wanwatcher:2.3.0 \
+cosign verify noxied/wanwatcher:2.4.0 \
   --certificate-identity-regexp "https://github.com/noxied/wanwatcher/.*" \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
@@ -105,7 +105,7 @@ Reasonable extras for the paranoid:
 ```yaml
 services:
   wanwatcher:
-    image: noxied/wanwatcher:2.3.0   # pin a version, avoid :latest
+    image: noxied/wanwatcher:2.4.0   # pin a version, avoid :latest
     security_opt:
       - no-new-privileges:true
     deploy:
