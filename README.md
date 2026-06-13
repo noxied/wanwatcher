@@ -10,11 +10,12 @@ Monitors your WAN IPv4/IPv6 addresses and tells you when they change.
 [![Docker Pulls](https://img.shields.io/docker/pulls/noxied/wanwatcher?logo=docker)](https://hub.docker.com/r/noxied/wanwatcher)
 [![GitHub release](https://img.shields.io/github/v/release/noxied/wanwatcher?logo=github)](https://github.com/noxied/wanwatcher/releases)
 [![GitHub Stars](https://img.shields.io/github/stars/noxied/wanwatcher?style=social)](https://github.com/noxied/wanwatcher)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/noxied/wanwatcher/badge)](https://scorecard.dev/viewer/?uri=github.com/noxied/wanwatcher)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </div>
 
-WANwatcher is a small Docker container that periodically checks your public IPv4 and IPv6 addresses against several detection services. When an address changes it can notify you (Discord, Telegram, email, or anything Apprise supports), update DNS records (Cloudflare, DuckDNS, dyndns2), publish the state over MQTT for Home Assistant, and expose a status API with Prometheus metrics. It is aimed at homelabs and small servers on residential connections where the ISP changes your IP whenever it feels like it.
+WANwatcher is a small Docker container that periodically checks your public IPv4 and IPv6 addresses against several detection services. When an address changes it can notify you (Discord, Telegram, email, or anything Apprise supports), update DNS records (Cloudflare, DuckDNS, Route53, dyndns2), publish the state over MQTT for Home Assistant, and expose a status API with Prometheus metrics. It is aimed at homelabs and small servers on residential connections where the ISP changes your IP whenever it feels like it.
 
 ## Features
 
@@ -43,7 +44,7 @@ docker run -d \
   -e SERVER_NAME="My Server" \
   -v ./data:/data \
   -v ./logs:/logs \
-  noxied/wanwatcher:2.3.0
+  noxied/wanwatcher:2.4.0
 ```
 
 Or with compose:
@@ -51,7 +52,7 @@ Or with compose:
 ```yaml
 services:
   wanwatcher:
-    image: noxied/wanwatcher:2.3.0
+    image: noxied/wanwatcher:2.4.0
     container_name: wanwatcher
     restart: unless-stopped
     environment:
@@ -213,7 +214,7 @@ Supported: `DISCORD_WEBHOOK_URL_FILE`, `TELEGRAM_BOT_TOKEN_FILE`,
 ```yaml
 services:
   wanwatcher:
-    image: noxied/wanwatcher:2.3.0
+    image: noxied/wanwatcher:2.4.0
     environment:
       DISCORD_ENABLED: "true"
       DISCORD_WEBHOOK_URL_FILE: /run/secrets/discord_webhook
