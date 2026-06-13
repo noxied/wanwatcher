@@ -43,7 +43,7 @@ docker run -d \
   -e SERVER_NAME="My Server" \
   -v ./data:/data \
   -v ./logs:/logs \
-  noxied/wanwatcher:2.1.0
+  noxied/wanwatcher:2.2.0
 ```
 
 Or with compose:
@@ -51,7 +51,7 @@ Or with compose:
 ```yaml
 services:
   wanwatcher:
-    image: noxied/wanwatcher:2.1.0
+    image: noxied/wanwatcher:2.2.0
     container_name: wanwatcher
     restart: unless-stopped
     environment:
@@ -190,6 +190,34 @@ Everything is configured through environment variables. Booleans are the string 
 | `UPDATE_CHECK_ENABLED` | `true` | Check GitHub for new releases |
 | `UPDATE_CHECK_INTERVAL` | `86400` | Seconds between checks |
 | `UPDATE_CHECK_ON_STARTUP` | `true` | Also check at startup |
+
+### Secrets from files
+
+Every sensitive value can be read from a file instead of a plain environment
+variable, using the `<NAME>_FILE` convention. This is how Docker secrets and
+Kubernetes secret mounts are meant to be consumed. Set `<NAME>_FILE` to the
+path of a file and its contents are used (trailing whitespace is trimmed); a
+direct `<NAME>` variable, if also set, takes precedence. A `_FILE` path that
+does not exist stops the container at startup with a clear error.
+
+Supported: `DISCORD_WEBHOOK_URL_FILE`, `TELEGRAM_BOT_TOKEN_FILE`,
+`EMAIL_SMTP_PASSWORD_FILE`, `CLOUDFLARE_API_TOKEN_FILE`, `DUCKDNS_TOKEN_FILE`,
+`DYNDNS2_PASSWORD_FILE`, `MQTT_PASSWORD_FILE`, `IPINFO_TOKEN_FILE`,
+`APPRISE_URLS_FILE`.
+
+```yaml
+services:
+  wanwatcher:
+    image: noxied/wanwatcher:2.2.0
+    environment:
+      DISCORD_ENABLED: "true"
+      DISCORD_WEBHOOK_URL_FILE: /run/secrets/discord_webhook
+    secrets:
+      - discord_webhook
+secrets:
+  discord_webhook:
+    file: ./secrets/discord_webhook.txt
+```
 
 ## Notifications
 
