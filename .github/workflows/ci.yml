@@ -202,6 +202,19 @@ jobs:
             ${{ env.DOCKER_IMAGE }}:test \
             python -c "from wanwatcher import VERSION; print(f'Version: {VERSION}')"
 
+      # Security gate: scan the freshly built image before it can be published.
+      # ignore-unfixed skips CVEs with no upstream patch; .trivyignore (repo
+      # root) holds documented exceptions for any fixable findings.
+      - name: Scan image for vulnerabilities (Trivy)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.DOCKER_IMAGE }}:test
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          trivyignores: .trivyignore
+
   # ============================================================================
   # Docker Push (only on tags/main)
   # ============================================================================
@@ -212,7 +225,7 @@ jobs:
     if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
     permissions:
       contents: read
-      packages: write
+      id-token: write  # required for Cosign keyless (OIDC) signing
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -242,6 +255,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push multi-platform
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -251,6 +265,31 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # Generate a CycloneDX SBOM for the published image (by digest, so it is
+      # unambiguous across the multiple tags) and keep it as a build artifact.
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0.24.0
+        with:
+          image: ${{ env.DOCKER_IMAGE }}@${{ steps.build.outputs.digest }}
+          format: cyclonedx-json
+          output-file: wanwatcher-sbom.json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v6
+        with:
+          name: wanwatcher-sbom
+          path: wanwatcher-sbom.json
+
+      # Sign the image by digest with Cosign keyless (Sigstore/OIDC). Signing
+      # the digest covers every tag that points at it.
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v4.1.2
+
+      - name: Sign the published image
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: cosign sign --yes "${{ env.DOCKER_IMAGE }}@${DIGEST}"
 
   # ============================================================================
   # Create GitHub Release
