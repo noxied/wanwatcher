@@ -2,6 +2,19 @@
 
 Version-specific upgrade notes. The newest upgrade path is at the top.
 
+## 2.4.0 to 2.4.1
+
+A security patch with no configuration changes. Pull the new image and restart:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+What changed: untrusted geo and release-note strings are now escaped in email,
+Telegram and Discord notifications (previously they were inserted unescaped).
+Recommended for anyone using those notifiers.
+
 ## 2.3.x to 2.4.0
 
 No breaking changes and nothing to configure. The application image is
