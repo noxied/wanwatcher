@@ -2,6 +2,27 @@
 
 Version-specific upgrade notes. The newest upgrade path is at the top.
 
+## 2.1.x to 2.2.0
+
+No breaking changes and no required configuration. Pull the new image and
+restart:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+What changed:
+
+- Secrets can now be supplied from files with the `<NAME>_FILE` convention, for
+  Docker and Kubernetes secret mounts. Existing plain variables keep working
+  unchanged; this is opt-in. Note the fail-fast behaviour: if you set a
+  `_FILE` variable to a path that does not exist, the container stops at
+  startup with a clear error instead of running without the secret.
+- Published images are now signed with Cosign and ship with an SBOM. Existing
+  deployments need no change; see SECURITY.md if you want to verify the
+  signature before pulling.
+
 ## 2.0.x to 2.1.0
 
 No breaking changes and no required configuration. Pull the new image and
