@@ -88,7 +88,7 @@ jobs:
         run: bandit -r wanwatcher -f json -o bandit-report.json || true
 
       - name: Upload Bandit report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: bandit-security-report
           path: bandit-report.json
@@ -276,7 +276,7 @@ jobs:
           output-file: wanwatcher-sbom.json
 
       - name: Upload SBOM
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: wanwatcher-sbom
           path: wanwatcher-sbom.json
