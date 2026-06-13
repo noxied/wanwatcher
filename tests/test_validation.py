@@ -289,7 +289,7 @@ class TestDDNSValidation:
 
     def test_unknown_provider_fails(self):
         is_valid, errors, _ = run(
-            self.make_ddns_config(DDNSConfig(enabled=True, provider="route53"))
+            self.make_ddns_config(DDNSConfig(enabled=True, provider="azuredns"))
         )
         assert not is_valid
         assert any("DDNS_PROVIDER" in error for error in errors)
