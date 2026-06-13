@@ -10,6 +10,7 @@ from typing import Any, Dict, Optional
 
 import requests
 
+from wanwatcher.notifiers._escape import telegram_escape as _esc
 from wanwatcher.notifiers.base import NotificationProvider
 
 logger = logging.getLogger(__name__)
@@ -71,7 +72,7 @@ class TelegramNotifier(NotificationProvider):
             message_lines = [
                 f"{emoji} <b>WAN IP Monitor Alert</b>",
                 f"<b>{title}</b>",
-                f"Monitoring for <b>{server_name}</b>",
+                f"Monitoring for <b>{_esc(server_name)}</b>",
                 "",
             ]
 
@@ -80,26 +81,26 @@ class TelegramNotifier(NotificationProvider):
                 message_lines.append("<b>📊 Changes Detected:</b>")
                 if current_ips.get("ipv4") != previous_ips.get("ipv4"):
                     message_lines.append(
-                        f"  • IPv4: <code>{previous_ips.get('ipv4', 'None')}</code> → "
-                        f"<code>{current_ips.get('ipv4', 'None')}</code>"
+                        f"  • IPv4: <code>{_esc(previous_ips.get('ipv4', 'None'))}</code>"
+                        f" → <code>{_esc(current_ips.get('ipv4', 'None'))}</code>"
                     )
                 if current_ips.get("ipv6") != previous_ips.get("ipv6"):
                     message_lines.append(
-                        f"  • IPv6: <code>{previous_ips.get('ipv6', 'None')}</code> → "
-                        f"<code>{current_ips.get('ipv6', 'None')}</code>"
+                        f"  • IPv6: <code>{_esc(previous_ips.get('ipv6', 'None'))}</code>"
+                        f" → <code>{_esc(current_ips.get('ipv6', 'None'))}</code>"
                     )
                 message_lines.append("")
 
             # Current IPs
             if current_ips.get("ipv4"):
                 message_lines.append(
-                    f"<b>📍 Current IPv4:</b>\n<code>{current_ips['ipv4']}</code>"
+                    f"<b>📍 Current IPv4:</b>\n<code>{_esc(current_ips['ipv4'])}</code>"
                 )
                 message_lines.append("")
 
             if current_ips.get("ipv6"):
                 message_lines.append(
-                    f"<b>📍 Current IPv6:</b>\n<code>{current_ips['ipv6']}</code>"
+                    f"<b>📍 Current IPv6:</b>\n<code>{_esc(current_ips['ipv6'])}</code>"
                 )
                 message_lines.append("")
 
@@ -121,13 +122,13 @@ class TelegramNotifier(NotificationProvider):
                             ],
                         )
                     )
-                    message_lines.append(f"🌍 {location}")
+                    message_lines.append(f"🌍 {_esc(location)}")
 
                 if geo_data.get("org"):
-                    message_lines.append(f"🏢 {geo_data['org']}")
+                    message_lines.append(f"🏢 {_esc(geo_data['org'])}")
 
                 if geo_data.get("timezone"):
-                    message_lines.append(f"🕐 {geo_data['timezone']}")
+                    message_lines.append(f"🕐 {_esc(geo_data['timezone'])}")
 
                 message_lines.append("")
 
@@ -189,7 +190,7 @@ class TelegramNotifier(NotificationProvider):
                 ):
                     cleaned = line.lstrip("-*• ").strip()
                     if cleaned and not cleaned.startswith("#"):
-                        changelog_lines.append(f"  • {cleaned}")
+                        changelog_lines.append(f"  • {_esc(cleaned)}")
 
             changelog_preview = (
                 "\n".join(changelog_lines[:5])
@@ -208,13 +209,13 @@ class TelegramNotifier(NotificationProvider):
                 changelog_preview,
                 "",
                 "<b>🔗 Full Changelog:</b>",
-                f"<a href=\"{update_info['release_url']}\">View Release Notes</a>",
+                f"<a href=\"{_esc(update_info['release_url'])}\">View Release Notes</a>",
                 "",
                 "<b>💡 How to Update:</b>",
                 "<code>docker pull noxied/wanwatcher:latest</code>",
                 "<code>docker restart wanwatcher</code>",
                 "",
-                f"<i>Update check for {server_name}</i>",
+                f"<i>Update check for {_esc(server_name)}</i>",
             ]
 
             message = "\n".join(message_lines)
@@ -256,7 +257,10 @@ class TelegramNotifier(NotificationProvider):
     ) -> bool:
         """Send a generic event as an HTML text message."""
         try:
-            text = f"<b>{title}</b>\n\n{message}\n\n<i>{server_name}</i>"
+            text = (
+                f"<b>{_esc(title)}</b>\n\n{_esc(message)}\n\n"
+                f"<i>{_esc(server_name)}</i>"
+            )
 
             payload = {
                 "chat_id": self.chat_id,
