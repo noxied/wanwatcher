@@ -27,6 +27,7 @@ _ENV_PREFIXES = (
     "DUCKDNS_",
     "DYNDNS2_",
     "DDNS_",
+    "ROUTE53_",
     "API_",
     "MQTT_",
     "HEARTBEAT_",

@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-06-13
+
+### Added
+
+- AWS Route53 DDNS provider (`DDNS_PROVIDER=route53`). Updates all configured
+  records in a single atomic batch (UPSERT) using the Route53 REST API signed
+  with Signature V4. No AWS SDK is bundled, so the image stays small. Configure
+  with `ROUTE53_ACCESS_KEY_ID`, `ROUTE53_SECRET_ACCESS_KEY` (also supports the
+  `_FILE` convention), `ROUTE53_HOSTED_ZONE_ID`, `ROUTE53_RECORDS`, and an
+  optional `ROUTE53_TTL` (default 300). The credentials need
+  `route53:ChangeResourceRecordSets` on the hosted zone.
+
 ## [2.2.0] - 2026-06-13
 
 Security hardening. No breaking changes; existing configuration keeps working.

@@ -213,12 +213,38 @@ class DynDNS2Config:
 
 
 @dataclass
+class Route53Config:
+    """AWS Route53. Uses AWS credentials with route53:ChangeResourceRecordSets
+    permission on the hosted zone; signed with SigV4 (no AWS SDK dependency)."""
+
+    access_key_id: str = ""
+    secret_access_key: str = ""
+    hosted_zone_id: str = ""
+    records: List[str] = field(default_factory=list)
+    ttl: int = 300
+
+    @classmethod
+    def from_env(cls) -> "Route53Config":
+        # Strip an optional "/hostedzone/" prefix so users can paste either form.
+        zone = _env_str("ROUTE53_HOSTED_ZONE_ID")
+        zone = zone.rsplit("/", 1)[-1] if zone else zone
+        return cls(
+            access_key_id=_env_str("ROUTE53_ACCESS_KEY_ID"),
+            secret_access_key=_env_secret("ROUTE53_SECRET_ACCESS_KEY"),
+            hosted_zone_id=zone,
+            records=_env_list("ROUTE53_RECORDS"),
+            ttl=_env_int("ROUTE53_TTL", 300),
+        )
+
+
+@dataclass
 class DDNSConfig:
     enabled: bool = False
-    provider: str = ""  # cloudflare | duckdns | dyndns2
+    provider: str = ""  # cloudflare | duckdns | dyndns2 | route53
     cloudflare: CloudflareConfig = field(default_factory=CloudflareConfig)
     duckdns: DuckDNSConfig = field(default_factory=DuckDNSConfig)
     dyndns2: DynDNS2Config = field(default_factory=DynDNS2Config)
+    route53: Route53Config = field(default_factory=Route53Config)
 
     @classmethod
     def from_env(cls) -> "DDNSConfig":
@@ -228,6 +254,7 @@ class DDNSConfig:
             cloudflare=CloudflareConfig.from_env(),
             duckdns=DuckDNSConfig.from_env(),
             dyndns2=DynDNS2Config.from_env(),
+            route53=Route53Config.from_env(),
         )
 
 

@@ -13,6 +13,7 @@ from wanwatcher.ddns.base import DDNSClient
 from wanwatcher.ddns.cloudflare import CloudflareClient
 from wanwatcher.ddns.duckdns import DuckDNSClient
 from wanwatcher.ddns.dyndns2 import DynDNS2Client
+from wanwatcher.ddns.route53 import Route53Client
 from wanwatcher.metrics import Metrics
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ __all__ = [
     "DDNSClient",
     "DuckDNSClient",
     "DynDNS2Client",
+    "Route53Client",
     "build_ddns_client",
 ]
 
@@ -67,9 +69,25 @@ def build_ddns_client(
             return None
         return DynDNS2Client(dyndns2, timeout=timeout, metrics=metrics)
 
+    if provider == "route53":
+        route53 = config.route53
+        if not (
+            route53.access_key_id
+            and route53.secret_access_key
+            and route53.hosted_zone_id
+            and route53.records
+        ):
+            logger.error(
+                "DDNS: route53 provider needs ROUTE53_ACCESS_KEY_ID, "
+                "ROUTE53_SECRET_ACCESS_KEY, ROUTE53_HOSTED_ZONE_ID and "
+                "ROUTE53_RECORDS - DDNS disabled"
+            )
+            return None
+        return Route53Client(route53, timeout=timeout, metrics=metrics)
+
     logger.error(
-        "DDNS: unknown provider %r (expected cloudflare, duckdns or dyndns2) "
-        "- DDNS disabled",
+        "DDNS: unknown provider %r (expected cloudflare, duckdns, dyndns2 or "
+        "route53) - DDNS disabled",
         config.provider,
     )
     return None
