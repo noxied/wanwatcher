@@ -1,6 +1,6 @@
 services:
   wanwatcher:
-    image: noxied/wanwatcher:2.4.0
+    image: noxied/wanwatcher:2.4.1
     container_name: wanwatcher
     restart: unless-stopped
 

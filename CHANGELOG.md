@@ -5,6 +5,20 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.1] - 2026-06-13
+
+### Security
+
+- Escape untrusted strings before placing them in notification bodies. Geo data
+  from ipinfo.io (the `org`, `city`, `region`, and `timezone` fields) and GitHub
+  release-note content are now HTML-escaped in email and Telegram
+  (`parse_mode=HTML`) messages and markdown-escaped in Discord. This prevents
+  markup or link injection into the notification channels. For Telegram it also
+  fixes a case where a stray `<` or `&` in a field (for example the ISP `org`
+  string) made the Bot API reject the message with a 400 error, silently
+  dropping a real IP-change alert. Plain-text email and Apprise bodies were not
+  affected and are unchanged.
+
 ## [2.4.0] - 2026-06-13
 
 Supply-chain and provenance tooling. No application code changes; the image is

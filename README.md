@@ -44,7 +44,7 @@ docker run -d \
   -e SERVER_NAME="My Server" \
   -v ./data:/data \
   -v ./logs:/logs \
-  noxied/wanwatcher:2.4.0
+  noxied/wanwatcher:2.4.1
 ```
 
 Or with compose:
@@ -52,7 +52,7 @@ Or with compose:
 ```yaml
 services:
   wanwatcher:
-    image: noxied/wanwatcher:2.4.0
+    image: noxied/wanwatcher:2.4.1
     container_name: wanwatcher
     restart: unless-stopped
     environment:
@@ -214,7 +214,7 @@ Supported: `DISCORD_WEBHOOK_URL_FILE`, `TELEGRAM_BOT_TOKEN_FILE`,
 ```yaml
 services:
   wanwatcher:
-    image: noxied/wanwatcher:2.4.0
+    image: noxied/wanwatcher:2.4.1
     environment:
       DISCORD_ENABLED: "true"
       DISCORD_WEBHOOK_URL_FILE: /run/secrets/discord_webhook
