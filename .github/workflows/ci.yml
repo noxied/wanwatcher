@@ -292,6 +292,28 @@ jobs:
         run: cosign sign --yes "${{ env.DOCKER_IMAGE }}@${DIGEST}"
 
   # ============================================================================
+  # Sync the Docker Hub repository overview from the repo (main only)
+  # ============================================================================
+  dockerhub-description:
+    name: Sync Docker Hub Description
+    runs-on: ubuntu-latest
+    needs: [docker-push]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Update Docker Hub description
+        uses: peter-evans/dockerhub-description@v5.0.0
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: ${{ env.DOCKER_IMAGE }}
+          readme-filepath: ./DOCKER_HUB_DESCRIPTION.md
+
+  # ============================================================================
   # Create GitHub Release
   # ============================================================================
   release:
