@@ -7,6 +7,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Any, Dict, List, Optional, Union
 
+from wanwatcher.notifiers._escape import html_escape as _esc
 from wanwatcher.notifiers.base import NotificationProvider
 
 logger = logging.getLogger(__name__)
@@ -86,7 +87,7 @@ class EmailNotifier(NotificationProvider):
         if is_first_run:
             header_color = "#4CAF50"  # Green
             title = "✅ Initial IP Detection"
-            subtitle = f"Monitoring started for {server_name}"
+            subtitle = f"Monitoring started for {_esc(server_name)}"
         else:
             header_color = "#FF9800"  # Orange
             title = "🔄 IP Address Changed"
@@ -95,13 +96,13 @@ class EmailNotifier(NotificationProvider):
             changes = []
             if current_ips.get("ipv4") != previous_ips.get("ipv4"):
                 changes.append(
-                    f"<strong>IPv4:</strong> {previous_ips.get('ipv4', 'None')} → "
-                    f"{current_ips.get('ipv4', 'None')}"
+                    f"<strong>IPv4:</strong> {_esc(previous_ips.get('ipv4', 'None'))} → "
+                    f"{_esc(current_ips.get('ipv4', 'None'))}"
                 )
             if current_ips.get("ipv6") != previous_ips.get("ipv6"):
                 changes.append(
-                    f"<strong>IPv6:</strong> {previous_ips.get('ipv6', 'None')} → "
-                    f"{current_ips.get('ipv6', 'None')}"
+                    f"<strong>IPv6:</strong> {_esc(previous_ips.get('ipv6', 'None'))} → "
+                    f"{_esc(current_ips.get('ipv6', 'None'))}"
                 )
 
             subtitle = "<br>".join(changes) if changes else "IP information updated"
@@ -135,7 +136,7 @@ class EmailNotifier(NotificationProvider):
             html += f"""
             <tr>
                 <td style="padding: 12px 15px; border-bottom: 1px solid #333; font-weight: 600; color: #4CAF50; width: 40%; background-color: #2a2a2a;">IPv4 Address:</td>
-                <td style="padding: 12px 15px; border-bottom: 1px solid #333; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">{current_ips['ipv4']}</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #333; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">{_esc(current_ips['ipv4'])}</td>
             </tr>
 """
 
@@ -143,7 +144,7 @@ class EmailNotifier(NotificationProvider):
             html += f"""
             <tr>
                 <td style="padding: 12px 15px; font-weight: 600; color: #4CAF50; width: 40%; background-color: #2a2a2a;">IPv6 Address:</td>
-                <td style="padding: 12px 15px; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">{current_ips['ipv6']}</td>
+                <td style="padding: 12px 15px; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">{_esc(current_ips['ipv6'])}</td>
             </tr>
 """
 
@@ -172,7 +173,7 @@ class EmailNotifier(NotificationProvider):
                 html += f"""
             <tr>
                 <td style="padding: 12px 15px; border-bottom: 1px solid #333; font-weight: 600; color: #4CAF50; width: 40%; background-color: #2a2a2a;">Location:</td>
-                <td style="padding: 12px 15px; border-bottom: 1px solid #333; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">🌍 {location}</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #333; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">🌍 {_esc(location)}</td>
             </tr>
 """
 
@@ -180,7 +181,7 @@ class EmailNotifier(NotificationProvider):
                 html += f"""
             <tr>
                 <td style="padding: 12px 15px; border-bottom: 1px solid #333; font-weight: 600; color: #4CAF50; width: 40%; background-color: #2a2a2a;">ISP / Organization:</td>
-                <td style="padding: 12px 15px; border-bottom: 1px solid #333; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">🏢 {geo_data['org']}</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #333; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">🏢 {_esc(geo_data['org'])}</td>
             </tr>
 """
 
@@ -188,7 +189,7 @@ class EmailNotifier(NotificationProvider):
                 html += f"""
             <tr>
                 <td style="padding: 12px 15px; font-weight: 600; color: #4CAF50; width: 40%; background-color: #2a2a2a;">Timezone:</td>
-                <td style="padding: 12px 15px; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">🕐 {geo_data['timezone']}</td>
+                <td style="padding: 12px 15px; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">🕐 {_esc(geo_data['timezone'])}</td>
             </tr>
 """
 
@@ -200,7 +201,7 @@ class EmailNotifier(NotificationProvider):
         <table style="width: 100%; border-collapse: collapse; margin: 15px 0; background-color: #252525; border-radius: 6px;">
             <tr>
                 <td style="padding: 12px 15px; border-bottom: 1px solid #333; font-weight: 600; color: #4CAF50; width: 40%; background-color: #2a2a2a;">Server Name:</td>
-                <td style="padding: 12px 15px; border-bottom: 1px solid #333; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">{server_name}</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #333; color: #e0e0e0; font-family: 'Courier New', monospace; font-weight: 500; background-color: #252525;">{_esc(server_name)}</td>
             </tr>
             <tr>
                 <td style="padding: 12px 15px; border-bottom: 1px solid #333; font-weight: 600; color: #4CAF50; width: 40%; background-color: #2a2a2a;">Detected At:</td>
@@ -221,7 +222,7 @@ class EmailNotifier(NotificationProvider):
         <div style="background: linear-gradient(135deg, #1a5f7a 0%, #16213e 100%); padding: 20px 15px; text-align: center; font-size: 13px; color: #e0e0e0;">
             <p style="margin: 0 0 10px 0;">
                 <span style="display: inline-block; padding: 5px 10px; background-color: rgba(255,255,255,0.15); border-radius: 5px; font-size: 12px; color: white; margin: 0 4px;">🐳 WANwatcher v{version}</span>
-                <span style="display: inline-block; padding: 5px 10px; background-color: rgba(255,255,255,0.15); border-radius: 5px; font-size: 12px; color: white; margin: 0 4px;">📍 {server_name}</span>
+                <span style="display: inline-block; padding: 5px 10px; background-color: rgba(255,255,255,0.15); border-radius: 5px; font-size: 12px; color: white; margin: 0 4px;">📍 {_esc(server_name)}</span>
             </p>
             <p style="margin: 0; font-size: 14px; color: #e0e0e0;">
                 🌐 Automated WAN IP Monitoring System
@@ -456,11 +457,11 @@ WANwatcher Update Notification
 
             <div class="section-title">📋 What's New</div>
             <div class="changelog">
-                <div class="changelog-content">{changelog_preview if changelog_preview.strip() else 'See release notes for details'}</div>
+                <div class="changelog-content">{_esc(changelog_preview if changelog_preview.strip() else 'See release notes for details')}</div>
             </div>
 
             <center>
-                <a href="{update_info['release_url']}" class="button">🔗 View Full Changelog</a>
+                <a href="{_esc(update_info['release_url'])}" class="button">🔗 View Full Changelog</a>
             </center>
 
             <div class="section-title">💡 How to Update</div>
@@ -472,7 +473,7 @@ docker restart wanwatcher
         <div class="footer">
             <p style="margin: 0 0 10px 0;">
                 <span class="badge">🐳 WANwatcher v{version}</span>
-                <span class="badge">📍 {server_name}</span>
+                <span class="badge">📍 {_esc(server_name)}</span>
             </p>
             <p style="margin: 0; font-size: 14px; color: #e0e0e0;">
                 🌐 Automated WAN IP Monitoring System
@@ -516,9 +517,9 @@ docker restart wanwatcher
 <!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; line-height: 1.6;">
-    <h2 style="margin: 0 0 12px 0;">{title}</h2>
-    <p style="margin: 0 0 16px 0; white-space: pre-wrap;">{message}</p>
-    <p style="margin: 0; color: #666;"><i>{server_name}</i></p>
+    <h2 style="margin: 0 0 12px 0;">{_esc(title)}</h2>
+    <p style="margin: 0 0 16px 0; white-space: pre-wrap;">{_esc(message)}</p>
+    <p style="margin: 0; color: #666;"><i>{_esc(server_name)}</i></p>
 </body>
 </html>
 """

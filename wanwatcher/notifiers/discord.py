@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
+from wanwatcher.notifiers._escape import discord_escape as _esc
 from wanwatcher.notifiers.base import NotificationProvider
 
 logger = logging.getLogger(__name__)
@@ -62,7 +63,7 @@ class DiscordNotifier(NotificationProvider):
             if is_first_run:
                 title = "✅ Initial IP Detection"
                 color = 0x00FF00  # Green
-                change_info = f"Monitoring started for **{server_name}**"
+                change_info = f"Monitoring started for **{_esc(server_name)}**"
             else:
                 title = "🔄 IP Address Changed"
                 color = 0xFF9900  # Orange
@@ -124,13 +125,13 @@ class DiscordNotifier(NotificationProvider):
                             ],
                         )
                     )
-                    geo_text.append(f"🌍 {location}")
+                    geo_text.append(f"🌍 {_esc(location)}")
 
                 if geo_data.get("org"):
-                    geo_text.append(f"🏢 {geo_data['org']}")
+                    geo_text.append(f"🏢 {_esc(geo_data['org'])}")
 
                 if geo_data.get("timezone"):
-                    geo_text.append(f"🕐 {geo_data['timezone']}")
+                    geo_text.append(f"🕐 {_esc(geo_data['timezone'])}")
 
                 if geo_text:
                     fields.append(
@@ -223,7 +224,7 @@ class DiscordNotifier(NotificationProvider):
                         # Truncate if still too long
                         if len(cleaned) > 80:
                             cleaned = cleaned[:77] + "..."
-                        changelog_lines.append(f"• {cleaned}")
+                        changelog_lines.append(f"• {_esc(cleaned)}")
 
                 # Stop if we have enough
                 if len(changelog_lines) >= 4:
@@ -322,7 +323,7 @@ class DiscordNotifier(NotificationProvider):
                 "embeds": [
                     {
                         "title": title,
-                        "description": message,
+                        "description": _esc(message),
                         "color": color,
                         "footer": {"text": server_name},
                         "timestamp": datetime.now(timezone.utc).isoformat(),

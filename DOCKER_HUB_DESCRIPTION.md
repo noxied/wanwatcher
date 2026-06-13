@@ -16,6 +16,7 @@ aimed at homelabs and small servers on connections where the ISP changes your IP
 
 ## Recent releases
 
+- 2.4.1: security fix - escape untrusted geo/release-note strings in notifications.
 - 2.3.0: AWS Route53 DDNS provider (SigV4, no AWS SDK bundled).
 - 2.2.0: secrets from files (`<NAME>_FILE`), plus Trivy scanning, CycloneDX SBOM and Cosign keyless image signing.
 - 2.1.0: optional JSON logging (`LOG_FORMAT=json`) and adaptive backoff with jitter.
@@ -66,8 +67,8 @@ Operations
 
 | Architecture | Tags | Status |
 |--------------|------|--------|
-| x86-64 (AMD64) | `latest`, `2.4.0` | Supported |
-| ARM64 (aarch64) | `latest`, `2.4.0` | Supported |
+| x86-64 (AMD64) | `latest`, `2.4.1` | Supported |
+| ARM64 (aarch64) | `latest`, `2.4.1` | Supported |
 
 Docker pulls the correct image for your platform automatically. ARM64 covers
 Raspberry Pi 4 and newer, Apple Silicon, and AWS Graviton.
@@ -94,7 +95,7 @@ docker run -d \
   -e SERVER_NAME="My Server" \
   -v ./data:/data \
   -v ./logs:/logs \
-  noxied/wanwatcher:2.4.0
+  noxied/wanwatcher:2.4.1
 ```
 
 ### docker compose
@@ -102,7 +103,7 @@ docker run -d \
 ```yaml
 services:
   wanwatcher:
-    image: noxied/wanwatcher:2.4.0
+    image: noxied/wanwatcher:2.4.1
     container_name: wanwatcher
     restart: unless-stopped
     environment:
@@ -344,7 +345,7 @@ docker buildx build \
 
 | Tag | Meaning |
 |-----|---------|
-| `2.4.0` | This exact release |
+| `2.4.1` | This exact release |
 | `2.0` | Latest 2.0.x patch |
 | `2` | Latest 2.x release |
 | `latest` | Latest stable release |
@@ -355,6 +356,7 @@ docker buildx build \
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 2.4.1 | 2026-06-13 | Security: escape untrusted strings in notifications |
 | 2.3.0 | 2026-06-13 | AWS Route53 DDNS provider |
 | 2.2.0 | 2026-06-13 | Secrets from files, Trivy/SBOM/Cosign supply-chain security |
 | 2.1.0 | 2026-06-13 | Optional JSON logging (LOG_FORMAT), adaptive backoff with jitter |
