@@ -44,7 +44,7 @@ docker run -d \
   -e SERVER_NAME="My Server" \
   -v ./data:/data \
   -v ./logs:/logs \
-  noxied/wanwatcher:2.4.1
+  noxied/wanwatcher:2.5.0
 ```
 
 Or with compose:
@@ -52,7 +52,7 @@ Or with compose:
 ```yaml
 services:
   wanwatcher:
-    image: noxied/wanwatcher:2.4.1
+    image: noxied/wanwatcher:2.5.0
     container_name: wanwatcher
     restart: unless-stopped
     environment:
@@ -214,7 +214,7 @@ Supported: `DISCORD_WEBHOOK_URL_FILE`, `TELEGRAM_BOT_TOKEN_FILE`,
 ```yaml
 services:
   wanwatcher:
-    image: noxied/wanwatcher:2.4.1
+    image: noxied/wanwatcher:2.5.0
     environment:
       DISCORD_ENABLED: "true"
       DISCORD_WEBHOOK_URL_FILE: /run/secrets/discord_webhook
@@ -316,14 +316,16 @@ ROUTE53_TTL: "300"
 
 Set `API_ENABLED=true` and publish the port (`-p 8080:8080`). Endpoints:
 
-- `GET /healthz` returns `{"status": "ok", ...}` when the loop is healthy
-- `GET /api/status` returns the full state: current IPs, last check, last change, uptime
+- `GET /healthz` returns `{"status": "ok", ...}` (200) when the loop is healthy, or `{"status": "stale", ...}` (503) if no successful check has happened within a generous multiple of `CHECK_INTERVAL`, so a wedged loop is detectable
+- `GET /api/status` returns the full state: current IPs, last check, `seconds_since_last_check`, `check_interval`, last change, uptime, and recent change history
 - `GET /metrics` returns Prometheus metrics
 
 ```bash
 curl http://localhost:8080/api/status
 curl http://localhost:8080/metrics
 ```
+
+Geographic data in `/api/status` (and over MQTT) reflects the most recent IP change, since the lookup only runs when the address changes; it is null until the first change is recorded.
 
 Exported metrics include `wanwatcher_checks_total`, `wanwatcher_check_failures_total`, `wanwatcher_ip_changes_total`, `wanwatcher_notifications_total`, `wanwatcher_ddns_updates_total`, `wanwatcher_last_change_timestamp_seconds`, `wanwatcher_last_check_timestamp_seconds`, and `wanwatcher_up`. A Prometheus scrape job pointed at `wanwatcher:8080` works as-is; no extra exporter needed.
 

@@ -152,3 +152,68 @@ def test_heartbeat_emitted_when_due(config):
     app.maybe_heartbeat()
     app.notifications.notify_event.assert_called_once()
     assert app.notifications.notify_event.call_args.args[0] == "Heartbeat"
+
+
+def test_status_snapshot_has_freshness_fields(app):
+    app.detector.get_ipv4.return_value = "1.2.3.4"
+    app.check_ip()
+    snap = app.status_snapshot()
+    assert snap["check_interval"] == app.config.check_interval
+    assert isinstance(snap["seconds_since_last_check"], float)
+    assert snap["seconds_since_last_check"] >= 0
+
+
+def test_notification_exception_is_isolated(app):
+    # A notifier blowing up must not count as a check failure or trigger outage.
+    app.detector.get_ipv4.return_value = "1.2.3.4"
+    app.notifications.send_to_all.side_effect = RuntimeError("notifier exploded")
+    result = app.check_ip()
+    assert result is True  # detection succeeded
+    assert app.consecutive_failures == 0  # no false outage
+    counters = app.metrics._counters
+    failures = sum(
+        v for (n, _), v in counters.items() if n == "wanwatcher_check_failures_total"
+    )
+    assert failures == 0
+
+
+def test_geo_not_clobbered_by_failed_lookup(app, monkeypatch):
+    app.detector.get_ipv4.return_value = "1.2.3.4"
+    monkeypatch.setattr(
+        "wanwatcher.app.get_geo_data", lambda *a, **k: {"city": "Lisbon"}
+    )
+    app.check_ip()  # first run, geo set
+    assert app.geo_data == {"city": "Lisbon"}
+    # A later change whose geo lookup fails must keep the previous geo.
+    monkeypatch.setattr("wanwatcher.app.get_geo_data", lambda *a, **k: None)
+    app.detector.get_ipv4.return_value = "5.6.7.8"
+    app.check_ip()
+    assert app.geo_data == {"city": "Lisbon"}
+
+
+def test_status_snapshot_concurrent_with_check_is_consistent(app):
+    import threading
+
+    app.detector.get_ipv4.return_value = "1.2.3.4"
+    app.check_ip()
+    errors = []
+
+    def reader():
+        for _ in range(100):
+            try:
+                snap = app.status_snapshot()
+                assert isinstance(snap["history"], list)
+            except Exception as exc:  # noqa: BLE001
+                errors.append(exc)
+
+    def writer():
+        for i in range(100):
+            app.detector.get_ipv4.return_value = f"1.2.3.{i % 254 + 1}"
+            app.check_ip()
+
+    t1, t2 = threading.Thread(target=reader), threading.Thread(target=writer)
+    t1.start()
+    t2.start()
+    t1.join(5)
+    t2.join(5)
+    assert not errors

@@ -6,7 +6,7 @@ format. Counters and gauges only; thread-safe; zero dependencies.
 
 import threading
 import time
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 
 class Metrics:
@@ -61,13 +61,17 @@ class Metrics:
     ) -> Tuple[str, Tuple[Tuple[str, str], ...]]:
         return (name, tuple(sorted(labels.items())))
 
-    def inc(self, name: str, labels: Dict[str, str] = None, value: float = 1) -> None:
+    def inc(
+        self, name: str, labels: Optional[Dict[str, str]] = None, value: float = 1
+    ) -> None:
         labels = labels or {}
         with self._lock:
             key = self._key(name, labels)
             self._counters[key] = self._counters.get(key, 0) + value
 
-    def set_gauge(self, name: str, value: float, labels: Dict[str, str] = None) -> None:
+    def set_gauge(
+        self, name: str, value: float, labels: Optional[Dict[str, str]] = None
+    ) -> None:
         labels = labels or {}
         with self._lock:
             self._gauges[self._key(name, labels)] = value

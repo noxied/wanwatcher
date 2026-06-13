@@ -77,14 +77,22 @@ class _StatusRequestHandler(BaseHTTPRequestHandler):
             logger.exception("Status provider failed for /healthz")
             self._send_json(500, {"status": "error"})
             return
-        self._send_json(
-            200,
-            {
-                "status": "ok",
-                "last_check": status.get("last_check"),
-                "uptime_seconds": status.get("uptime_seconds"),
-            },
-        )
+
+        # Liveness: a stuck loop stops refreshing last_check. Once at least one
+        # check has run, flag the loop as stale (503) when the gap since the last
+        # successful check exceeds a generous multiple of the check interval.
+        age = status.get("seconds_since_last_check")
+        interval = status.get("check_interval") or 0
+        threshold = max(3 * interval, 1800) + 120
+        stale = age is not None and age > threshold
+
+        payload = {
+            "status": "stale" if stale else "ok",
+            "last_check": status.get("last_check"),
+            "seconds_since_last_check": age,
+            "uptime_seconds": status.get("uptime_seconds"),
+        }
+        self._send_json(503 if stale else 200, payload)
 
     def _handle_status(self) -> None:
         try:
