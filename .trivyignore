@@ -1,0 +1,9 @@
+# Trivy ignore list: CVEs accepted or without an upstream fix.
+#
+# The Trivy step already passes ignore-unfixed, so vulnerabilities with no
+# available patch in the base image (python:3.14-slim) do not fail the build.
+# Add a CVE id below only when a fixable HIGH/CRITICAL needs a temporary,
+# documented exception while a base image bump is pending. Review periodically.
+#
+# Example:
+# CVE-2025-12345  # accepted YYYY-MM-DD, no fix in slim base, low real impact
